@@ -1,0 +1,11 @@
+&parametersfile
+Lx = 8
+Ly = 8
+N_thermalization = 200
+N_measurements = 1000
+N_skip = 10
+beta_i = 0.1
+beta_f = 4.0
+n_beta = 21
+m0 = 1000.0
+/

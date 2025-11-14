@@ -1,0 +1,23 @@
+module linear_algebra
+
+  implicit none
+
+contains
+
+
+  function dot(u,v)
+    real(dp), dimension(:), codimension[:], intent(in) :: u, v
+    real(dp), allocatable :: dot[:]
+
+    allocate()
+    dot = dot_product(u,v) 
+
+    call cosum
+  end function dot
+  
+  function matrix_mutiplication(A,B), result(C)
+    real(dp), dimension(:,:), codimension[:], intent(in) :: A, B
+    real(dp), dimension(:,:), codimension[:] :: C
+  end function  matrix_mutiplication
+
+end module linear_algebra
