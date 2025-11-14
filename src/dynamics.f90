@@ -515,20 +515,42 @@ contains
    
   end function conjugate_gradient
 
-  function pion_propagator(phi,U)
+  function pion_propagator(U)
     use parameters, only : Lx, Ly
-    complex(dp), dimension(2,Lx,Ly), intent(in) :: U, phi
-    complex(dp), dimension(2,Lx,Ly) :: DDdaggerphi, DDdaggerinv_phi, Dinvphi
+    complex(dp), dimension(2,Lx,Ly), intent(in) :: U
+    complex(dp), dimension(2,Lx,Ly) :: S1, S2, DinvS1, DinvS2
     real(dp), dimension(Lx) :: pion_propagator
+    integer(i4) :: x
+
+    S1 = 0.0_dp
+    S2 = 0.0_dp
+
+    S1(1,1,1) = 1.0_dp
+    S2(2,2,1) = 1.0_dp
     
-    DDdaggerphi = DDdagger(phi,U)
-    DDdaggerinv_phi = conjugate_gradient(DDdaggerphi,U)
-    Dinvphi = Ddagger(DDdaggerinv_phi,U)
+    DinvS1 = Dinv(S1,U)
+    DinvS2 = Dinv(S2,U)
 
     do x = 1, Lx
-       pion_propagator(x) = sum(Dinvphi(1,x,:)*conjg(Dinvphi(1,x,:)) + Dinvphi(2,x,:)*conjg(Dinvphi(2,x,:))) 
+       pion_propagator(x) = real(sum(  &
+            DinvS1(1,x,:)*conjg(DinvS1(1,x,:)) + &
+            DinvS1(2,x,:)*conjg(DinvS1(2,x,:)) + &
+            DinvS2(1,x,:)*conjg(DinvS2(2,x,:)) + &
+            DinvS2(2,x,:)*conjg(DinvS2(1,x,:)) ))
     end do
+    
   end function pion_propagator
+
+  function Dinv(phi,U)
+    use parameters, only : Lx, Ly
+    complex(dp), dimension(2,Lx,Ly), intent(in) :: phi, U
+    complex(dp), dimension(2,Lx,Ly) :: Dinv, DDdagger_phi, DDdaggerinv_phi
+
+    DDdagger_phi = DDdagger(phi,U)
+    DDdaggerinv_phi = conjugate_gradient(DDdagger_phi,U) 
+    Dinv = Ddagger(DDdaggerinv_phi,U)
+    
+  end function Dinv
   
   function staples(u,x,mu)
 

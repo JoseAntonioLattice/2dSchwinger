@@ -9,9 +9,21 @@
 \begin{document}
 \maketitle
 
+\section*{Abstract}
+We study the two dimensional Schwinger model with two degenerate fermion flavors.
+\section{Introduction}
+The action of the system with a gauge field and two degenerate flavors is
+\section{Results}
+We see in figure \ref{fig:plq} the plaquette value.
 \begin{figure}
+\centering
 \includegraphics[scale=1]{../data/plaquette.pdf}
-\caption{Average of the plaquette versus $\beta = 1/e^2$ over several bare mass parameters $m_0$ and the quenched case $m_0 = \infty$. The trajectory length used in the molecular dynamics algorthim is $T = 1$ with $N = 10$ steps. Each point is an average of $1000$ measurements taken every $10$ configurations with 200 updates for thermalization.}
+\caption{Average of the plaquette versus $\beta = 1/e^2$ over several bare mass parameters $m_0$ and the quenched case $m_0 = \infty$. The trajectory length used in the molecular dynamics algorithim is $T = 1$ with $N = 10$ steps. Each point is an average of $1000$ measurements taken every $10$ configurations with 200 updates for thermalization.}
+\label{fig:plq}
 \end{figure}
 
+
+
+\section*{Acknowledgements}
+I want to thank M.Sc.\ Jaime Fabián Nieto Castellanos for helping me with the implementation of the HMC algorithm as well as the Conjugate Gradient algorithm.  
 \end{document}
