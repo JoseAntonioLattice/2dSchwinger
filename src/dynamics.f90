@@ -11,12 +11,12 @@ module dynamics
 
 contains
  
-  subroutine set_memory(u,L,beta,betai,betaf,nbeta, plqaction,top_char,n_measurements)
+  subroutine set_memory(u,L,beta,betai,betaf,nbeta, plqaction,top_char,pion_correlator,n_measurements)
 
     complex(dp), allocatable, dimension(:,:,:) :: u
     integer(i4), intent(in) :: L(2)
     real(dp), allocatable, dimension(:) :: beta
-    real(dp), allocatable, dimension(:,:) :: top_char
+    real(dp), allocatable, dimension(:,:) :: top_char, pion_correlator
     real(dp), intent(in) :: betai, betaf
     real(dp), allocatable, dimension(:) :: plqaction
     integer(i4), intent(in) :: nbeta, n_measurements
@@ -37,14 +37,15 @@ contains
     sigma(2,:,:) = reshape([(0.0_dp,0.0_dp),i,-i,(0.0_dp,0.0_dp)],[2,2])
     allocate(plqaction(n_measurements))
     allocate(top_char(L(1),n_measurements))
+    allocate(pion_correlator(L(1),n_measurements))
   end subroutine set_memory
   
-  subroutine initialization(u,plqaction,top_char,beta,N_thermalization,N_measurements, N_skip)
-
+  subroutine initialization(u,plqaction,top_char,pion_correlator,beta,N_thermalization,N_measurements, N_skip)
+    use parameters, only : Lx, Ly
     complex(dp), dimension(:,:,:), intent(inout) :: u
     real(dp), dimension(:), intent(out) :: plqaction
     integer(i4), intent(in) :: N_thermalization, N_measurements, N_skip
-    real(dp), dimension(:,:), intent(out) :: top_char
+    real(dp), dimension(:,:), intent(out) :: top_char, pion_correlator
     real(dp), intent(in) :: beta
     real(dp) :: top(size(u(1,:,1)),size(u(1,1,:)))
     integer(i4) :: i_skip, i_sweeps, j
@@ -64,9 +65,10 @@ contains
           i_sweeps = i_sweeps + 1
           plqaction(i_sweeps) = action(u)
           
-          do j = 1, size(u(1,:,1))
+          do j = 1, Lx
              top_char(j,i_sweeps) = slab_top_char(top,j)
           end do
+          pion_correlator(:,i_sweeps) = pion_propagator(U)/sqrt(1.0_dp*Lx)
           !print*, i_sweeps, sum(top)/(2*pi), top_char(size(u(1,:,1)),i_sweeps)
        !end if
     end do
@@ -118,7 +120,7 @@ contains
 
     Lx = size(u(1,:,1))
     Ly = size(u(1,:,1))
-    call hmc(U,beta,10,1.0_dp)
+    call hmc(U,beta,15,1.0_dp)
    
   end subroutine sweeps
 
@@ -446,7 +448,7 @@ contains
   
   subroutine check_CG()
     use parameters, only : Lx, Ly
-    complex(dp), dimension(2,Lx,Ly) :: U, phi,phi_p, psi,Dphi,chi
+    complex(dp), dimension(2,Lx,Ly) :: U, phi,phi_p, psi,Dphi,chi,D1,D2
     real(dp), dimension(2,Lx,Ly) :: r
 
     call random_number(r)
@@ -465,90 +467,136 @@ contains
     !print*, Ddagger(phi,U)
     !print*, "DDdaggerphi"
     !print*, DDdagger(phi,U)
-    psi = conjugate_gradient(phi,U)
-    phi_p = DDdagger(psi,U)
+    !psi = conjugate_gradient(phi,U)
+    !phi_p = DDdagger(psi,U)
 
-    Dphi = phi-phi_p
-    print*, Dphi
+    D1 = bcg(phi,U)
+    D2 = Dinv(phi,U)
+    print*,D1(1,1,1)
+    print*,D2(1,1,1)
   end subroutine check_CG
  
   function conjugate_gradient(phi,U) result(x)
-    use parameters, only : Lx, Ly
+    use parameters, only : Lx, Ly, max_iter, tol
     complex(dp), dimension(2,Lx,Ly), intent(in) :: U, phi
     complex(dp), dimension(2,Lx,Ly) :: x
-    complex(dp), dimension(2,Lx,Ly) :: r,d,Ad
+    complex(dp), dimension(2,Lx,Ly) :: r,p,Ad
     complex(dp) :: alpha
     real(dp) :: err, phi_norm2, beta, rsq
     integer(i4) :: k
-    integer(i4), parameter :: max_iter = 1000
-    real(dp), parameter :: tol = 10E-10_dp
-
 
     x = phi
     Ad = DDdagger(x,U)
     r = phi - Ad
-    d = r
+    p = r
     
     k = 0
     err = real(sum(r*conjg(r)))
     !print*, "err", err
     phi_norm2 = sqrt(real(sum(phi*conjg(phi))))
     !print*, "norm of phi", phi_norm2
-    do while ( err > tol .and. k < max_iter)
+    do while ( err > tol*phi_norm2 .and. k < max_iter)
        
-       Ad = DDdagger(d,U)
+       Ad = DDdagger(p,U)
 
        rsq = err
-       alpha = rsq/sum(d*conjg(Ad))
+       alpha = rsq/sum(p*conjg(Ad))
 
-       x = x + alpha*d
+       x = x + alpha*p
        r = r - alpha*Ad
        
        err = real(sum(r*conjg(r)))
        
        beta = err/rsq
-       d = r + beta*d
+       p = r + beta*p
        k = k + 1
        !print*,"k = ",k, "err old = ", rsq ,"err new = ", err
-       if(k > max_iter)  stop "Maximum number of iterations reached. No convergence."
+       
     end do
-   
+    stop "CG. Maximum number of iterations reached. No convergence."
   end function conjugate_gradient
+
+  function bcg(phi,U) result(x)
+    use parameters, only : Lx, Ly, max_iter, tol
+    complex(dp), dimension(2,Lx,Ly), intent(in) :: U, phi
+    complex(dp), dimension(2,Lx,Ly) :: x
+    complex(dp), dimension(2,Lx,Ly) :: r,p,Ad,s,t,b,rtilde
+    complex(dp) :: alpha, beta, rho_i, rho_i_2, omega
+    real(dp) :: err, phi_norm, rsq
+    integer(i4) :: it
+    
+    x = phi
+    b = phi
+    Ad = D(x,U)
+    r = b-Ad
+    rtilde = r
+    phi_norm = sqrt(sum(phi*conjg(phi)))
+
+    it = 0
+    do while(it < max_iter)
+       rho_i = sum(conjg(rtilde)*r)
+       !if( rho_i <= 1e-10_dp ) stop "Method failed"
+       if(it == 0) then
+          p = r
+       else
+          beta = alpha*rho_i/(omega*rho_i_2)
+          p = r + beta*(p-omega*Ad)
+       end if
+
+       Ad = D(p,U)
+       alpha = rho_i/(sum(conjg(rtilde)*Ad))
+       s = r - alpha*Ad
+       err = sqrt(sum(conjg(s)*s))
+       if( err < tol*phi_norm )then
+          x = x + alpha*p
+          return
+       end if
+       t = D(s,U)
+       omega = sum(conjg(s)*t)/sum(conjg(t)*t)
+       r = s - omega*t
+       x = x + alpha*p+omega*s
+       rho_i_2 = rho_i
+       it = it + 1
+    end do
+    stop "BCG. Maximum number of iterations reached. No convergence."
+  end function bcg
 
   function pion_propagator(U)
     use parameters, only : Lx, Ly
     complex(dp), dimension(2,Lx,Ly), intent(in) :: U
     complex(dp), dimension(2,Lx,Ly) :: S1, S2, DinvS1, DinvS2
     real(dp), dimension(Lx) :: pion_propagator
-    integer(i4) :: x
+    integer(i4) :: x, y
 
-    S1 = 0.0_dp
-    S2 = 0.0_dp
+    S1 = (0.0_dp,0.0_dp)
+    S2 = (0.0_dp,0.0_dp)
 
-    S1(1,1,1) = 1.0_dp
-    S2(2,2,1) = 1.0_dp
+    S1(1,1,1) = (1.0_dp,0.0_dp)
+    S2(2,1,1) = (1.0_dp,0.0_dp)
     
-    DinvS1 = Dinv(S1,U)
-    DinvS2 = Dinv(S2,U)
+    DinvS1 = bcg(S1,U)
+    DinvS2 = bcg(S2,U)
 
+    pion_propagator = 0.0_dp
     do x = 1, Lx
-       pion_propagator(x) = real(sum(  &
-            DinvS1(1,x,:)*conjg(DinvS1(1,x,:)) + &
-            DinvS1(2,x,:)*conjg(DinvS1(2,x,:)) + &
-            DinvS2(1,x,:)*conjg(DinvS2(2,x,:)) + &
-            DinvS2(2,x,:)*conjg(DinvS2(1,x,:)) ))
+       do y = 1, Ly
+          pion_propagator(x) = pion_propagator(x) + &
+               abs(DinvS1(1,x,y))**2 + &
+               abs(DinvS1(2,x,y))**2 + &
+               abs(DinvS2(1,x,y))**2 + &
+               abs(DinvS2(2,x,y))**2 
+       end do
     end do
     
   end function pion_propagator
 
+
   function Dinv(phi,U)
     use parameters, only : Lx, Ly
     complex(dp), dimension(2,Lx,Ly), intent(in) :: phi, U
-    complex(dp), dimension(2,Lx,Ly) :: Dinv, DDdagger_phi, DDdaggerinv_phi
+    complex(dp), dimension(2,Lx,Ly) :: Dinv
 
-    DDdagger_phi = DDdagger(phi,U)
-    DDdaggerinv_phi = conjugate_gradient(DDdagger_phi,U) 
-    Dinv = Ddagger(DDdaggerinv_phi,U)
+    Dinv = Ddagger(conjugate_gradient(DDdagger(phi,U),U),U) 
     
   end function Dinv
   

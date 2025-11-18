@@ -11,9 +11,10 @@ module parameters
   real(dp) :: beta_i, beta_f
   integer(i4) :: n_beta
   real(dp) :: m0
-  
+  real(dp) :: tol
+  integer(i4) :: max_iter
   namelist /parametersfile/ Lx,Ly,N_thermalization,N_measurements,N_skip, &
-       beta_i, beta_f, n_beta,m0
+       beta_i, beta_f, n_beta,m0,tol, max_iter
 contains
 
   subroutine read_input()
