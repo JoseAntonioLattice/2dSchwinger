@@ -68,7 +68,7 @@ contains
           do j = 1, Lx
              top_char(j,i_sweeps) = slab_top_char(top,j)
           end do
-          pion_correlator(:,i_sweeps) = pion_propagator(U)/sqrt(1.0_dp*Lx)
+          pion_correlator(:,i_sweeps) = pion_propagator(U)/sqrt(1.0_dp*Ly)
           !print*, i_sweeps, sum(top)/(2*pi), top_char(size(u(1,:,1)),i_sweeps)
        !end if
     end do
@@ -89,11 +89,11 @@ contains
     
   end subroutine thermalization
 
-  subroutine hot_start(u,L)
-
-    integer(i4), intent(in) :: L
-    complex(dp), intent(out), dimension(2,L,L) :: u
-    real(dp), dimension(2,L,L) :: phi
+  subroutine hot_start(u)
+    use parameters, only : Lx, Ly
+    
+    complex(dp), intent(out), dimension(2,Lx,Ly) :: u
+    real(dp), dimension(2,Lx,Ly) :: phi
 
     call random_number(phi)
 
@@ -114,13 +114,9 @@ contains
 
     complex(dp), dimension(:,:,:), intent(inout) :: u
     real(dp), intent(in) :: beta
-
     integer(i4) :: x,y,mu
-    integer(i4) :: Lx, Ly
-
-    Lx = size(u(1,:,1))
-    Ly = size(u(1,:,1))
-    call hmc(U,beta,15,1.0_dp)
+    
+    call hmc(U,beta)
    
   end subroutine sweeps
 
@@ -149,11 +145,10 @@ contains
     
   end subroutine metropolis
 
-  subroutine hmc(U, beta, N, Time)
-    use parameters, only : m0, Lx, Ly
+  subroutine hmc(U, beta)
+    use parameters, only : m0, Lx, Ly, N => MD_steps, Time => trajectory_length
     complex(dp), intent(inout) :: U(2,Lx,Ly)
-    integer(i4), intent(in) :: N
-    real(dp), intent(in) :: beta, Time
+    real(dp), intent(in) :: beta
     complex(dp), dimension(2,Lx,Ly) ::  Up
     real(dp), dimension(2,Lx,Ly) :: Forces, p, pnew
     complex(dp), dimension(2,Lx,Ly) :: psi, chi,phi
@@ -444,8 +439,16 @@ contains
     DDdagger = D(Ddagger(phi,U),U)
 
   end function DDdagger
-
   
+  function Dinv(phi,U)
+    use parameters, only : Lx, Ly
+    complex(dp), dimension(2,Lx,Ly), intent(in) :: phi, U
+    complex(dp), dimension(2,Lx,Ly) :: Dinv
+
+    Dinv = Ddagger(conjugate_gradient(phi,U),U) 
+    
+  end function Dinv
+
   subroutine check_CG()
     use parameters, only : Lx, Ly
     complex(dp), dimension(2,Lx,Ly) :: U, phi,phi_p, psi,Dphi,chi,D1,D2
@@ -470,8 +473,9 @@ contains
     !psi = conjugate_gradient(phi,U)
     !phi_p = DDdagger(psi,U)
 
-    D1 = bcg(phi,U)
-    D2 = Dinv(phi,U)
+    D1 = conjugate_gradient(DDdagger(phi,U),U)!bcg(phi,U)
+    D2 = DDdagger(conjugate_gradient(phi,U),U)!Dinv(phi,U)
+    print*,phi(1,1,1)
     print*,D1(1,1,1)
     print*,D2(1,1,1)
   end subroutine check_CG
@@ -511,9 +515,9 @@ contains
        p = r + beta*p
        k = k + 1
        !print*,"k = ",k, "err old = ", rsq ,"err new = ", err
-       
+       if( k >= max_iter) stop "CG. Maximum number of iterations reached. No convergence."
     end do
-    stop "CG. Maximum number of iterations reached. No convergence."
+    
   end function conjugate_gradient
 
   function bcg(phi,U) result(x)
@@ -530,7 +534,7 @@ contains
     Ad = D(x,U)
     r = b-Ad
     rtilde = r
-    phi_norm = sqrt(sum(phi*conjg(phi)))
+    phi_norm = sqrt(real(sum(phi*conjg(phi))))
 
     it = 0
     do while(it < max_iter)
@@ -546,19 +550,20 @@ contains
        Ad = D(p,U)
        alpha = rho_i/(sum(conjg(rtilde)*Ad))
        s = r - alpha*Ad
-       err = sqrt(sum(conjg(s)*s))
+       err = sqrt(real(sum(conjg(s)*s)))
        if( err < tol*phi_norm )then
           x = x + alpha*p
           return
        end if
        t = D(s,U)
-       omega = sum(conjg(s)*t)/sum(conjg(t)*t)
+       omega = sum(conjg(s)*t)/real(sum(conjg(t)*t))
        r = s - omega*t
        x = x + alpha*p+omega*s
        rho_i_2 = rho_i
        it = it + 1
+       if( it >= max_iter) stop "BCG. Maximum number of iterations reached. No convergence."
     end do
-    stop "BCG. Maximum number of iterations reached. No convergence."
+    
   end function bcg
 
   function pion_propagator(U)
@@ -574,8 +579,8 @@ contains
     S1(1,1,1) = (1.0_dp,0.0_dp)
     S2(2,1,1) = (1.0_dp,0.0_dp)
     
-    DinvS1 = bcg(S1,U)
-    DinvS2 = bcg(S2,U)
+    DinvS1 = Dinv(S1,U)
+    DinvS2 = Dinv(S2,U)
 
     pion_propagator = 0.0_dp
     do x = 1, Lx
@@ -589,16 +594,6 @@ contains
     end do
     
   end function pion_propagator
-
-
-  function Dinv(phi,U)
-    use parameters, only : Lx, Ly
-    complex(dp), dimension(2,Lx,Ly), intent(in) :: phi, U
-    complex(dp), dimension(2,Lx,Ly) :: Dinv
-
-    Dinv = Ddagger(conjugate_gradient(DDdagger(phi,U),U),U) 
-    
-  end function Dinv
   
   function staples(u,x,mu)
 

@@ -13,8 +13,10 @@ module parameters
   real(dp) :: m0
   real(dp) :: tol
   integer(i4) :: max_iter
+  integer(i4) :: MD_steps
+  real(dp) :: trajectory_length
   namelist /parametersfile/ Lx,Ly,N_thermalization,N_measurements,N_skip, &
-       beta_i, beta_f, n_beta,m0,tol, max_iter
+       beta_i, beta_f, n_beta,m0,tol, max_iter, MD_steps, trajectory_length
 contains
 
   subroutine read_input()

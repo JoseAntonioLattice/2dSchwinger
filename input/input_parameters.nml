@@ -7,7 +7,9 @@ N_skip = 10
 beta_i = 4.0
 beta_f = 4.1
 n_beta = 2
-m0 = 0.0
+m0 = -0.05
 tol=1e-10
 max_iter = 10000
+MD_steps = 15
+trajectory_length = 1.0
 /

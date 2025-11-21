@@ -14,11 +14,13 @@ program U1_2d
   call set_memory(u,[Lx,Ly],beta,beta_i,beta_f,n_beta,plq_action,top_char,pion_correlator,n_measurements)
   allocate(avr_top(Lx),err_top(Lx))
   !print*, beta
-  !call check_CG()
+  call check_CG()
   !print*,sqrt(2/beta)
-  call hot_start(u,Lx)
+  call cold_start(u)
   open( unit = 10, file = 'data/data.dat', status = 'unknown')
   open( unit = 20, file = 'data/pion_correlator.dat', status = 'unknown')
+
+  !go to 100
   do i_b = 1, n_beta
      call initialization(u,plq_action,top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
      print*, beta(i_b), avr(plq_action), std_Err(plq_action)
@@ -35,7 +37,7 @@ program U1_2d
      flush(10)
      flush(20)
   end do
-
+  100 print*, "Goodbye World!"
 contains
 
   function avr(x)
