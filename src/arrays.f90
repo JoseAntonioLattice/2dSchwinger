@@ -6,8 +6,8 @@ module arrays
 
   complex(dp), allocatable, dimension(:,:,:) :: u
   real(dp), allocatable, dimension(:) :: beta 
-  real(dp), allocatable, dimension(:) :: plq_action, avr_top, err_top, avr_pion, err_pion
-  real(dp), allocatable, dimension(:,:) :: top_char
+  real(dp), allocatable, dimension(:) :: plq_action,top_char, avr_top, err_top, avr_pion, err_pion
+  real(dp), allocatable, dimension(:,:) :: slb_top_char
   real(dp), allocatable, dimension(:,:) :: pion_correlator
   real(dp) :: avr_action,err_action
   integer(i4) :: bins

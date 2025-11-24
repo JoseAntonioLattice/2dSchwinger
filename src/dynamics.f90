@@ -11,14 +11,14 @@ module dynamics
 
 contains
  
-  subroutine set_memory(u,L,beta,betai,betaf,nbeta, plqaction,top_char,pion_correlator,n_measurements)
+  subroutine set_memory(u,L,beta,betai,betaf,nbeta, plqaction,top_char,slb_top_char,pion_correlator,n_measurements)
 
     complex(dp), allocatable, dimension(:,:,:) :: u
     integer(i4), intent(in) :: L(2)
     real(dp), allocatable, dimension(:) :: beta
-    real(dp), allocatable, dimension(:,:) :: top_char, pion_correlator
+    real(dp), allocatable, dimension(:,:) :: slb_top_char, pion_correlator
     real(dp), intent(in) :: betai, betaf
-    real(dp), allocatable, dimension(:) :: plqaction
+    real(dp), allocatable, dimension(:) :: plqaction, top_char
     integer(i4), intent(in) :: nbeta, n_measurements
     real(dp), allocatable, dimension(:) :: beta_copy
     integer(i4) :: i_beta
@@ -35,23 +35,24 @@ contains
     !print*, sgnm
     sigma(1,:,:) = reshape([0.0_dp,1.0_dp,1.0_dp,0.0_dp],[2,2])
     sigma(2,:,:) = reshape([(0.0_dp,0.0_dp),i,-i,(0.0_dp,0.0_dp)],[2,2])
-    allocate(plqaction(n_measurements))
-    allocate(top_char(L(1),n_measurements))
+    allocate(plqaction(n_measurements),top_char(N_measurements))
+    allocate(slb_top_char(L(1),n_measurements))
     allocate(pion_correlator(L(1),n_measurements))
   end subroutine set_memory
   
-  subroutine initialization(u,plqaction,top_char,pion_correlator,beta,N_thermalization,N_measurements, N_skip)
+  subroutine initialization(u,plqaction,top_char,slb_top_char,pion_correlator,beta,N_thermalization,N_measurements, N_skip)
     use parameters, only : Lx, Ly
     complex(dp), dimension(:,:,:), intent(inout) :: u
-    real(dp), dimension(:), intent(out) :: plqaction
+    real(dp), dimension(:), intent(out) :: plqaction, top_char
     integer(i4), intent(in) :: N_thermalization, N_measurements, N_skip
-    real(dp), dimension(:,:), intent(out) :: top_char, pion_correlator
+    real(dp), dimension(:,:), intent(out) :: slb_top_char, pion_correlator
     real(dp), intent(in) :: beta
     real(dp) :: top(size(u(1,:,1)),size(u(1,1,:)))
     integer(i4) :: i_skip, i_sweeps, j
 
     call thermalization(u, N_thermalization, beta)
 
+    open(unit = 69, file = 'data/history_top.dat',status = 'unknown')
     !do i_sweeps = 1, N_measurements
     i_sweeps = 0
     do while(i_sweeps < N_measurements)
@@ -60,17 +61,18 @@ contains
        end do
        
        call topological_charge_density(u,top)
-      
-       !if(nint(abs(sum(top)/(2*pi))) == 1) then
+       top_char(i_sweeps) = sum(top)/(2*pi)
+       if(nint(abs(top_char(i_sweeps))) == 0) then
           i_sweeps = i_sweeps + 1
           plqaction(i_sweeps) = action(u)
           
           do j = 1, Lx
-             top_char(j,i_sweeps) = slab_top_char(top,j)
+             slb_top_char(j,i_sweeps) = slab_top_char(top,j)
           end do
-          pion_correlator(:,i_sweeps) = pion_propagator(U)/sqrt(1.0_dp*Ly)
-          !print*, i_sweeps, sum(top)/(2*pi), top_char(size(u(1,:,1)),i_sweeps)
-       !end if
+          !pion_correlator(:,i_sweeps) = pion_propagator(U)/sqrt(1.0_dp*Ly)
+          write(69,*) top_char(i_sweeps)
+          flush(69)
+       end if
     end do
     
   end subroutine initialization
