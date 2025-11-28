@@ -328,3 +328,761 @@ p-value of the Chisq distribution (FIT_P)              : 1.64753e-06
 Final set of parameters            Asymptotic Standard Error
 =======================            ==========================
 chi             = 0.0141463        +/- 0.0002936    (2.075%)
+
+
+*******************************************************************************
+Tue Nov 25 11:46:54 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat'
+        format = z
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+        residuals are weighted equally (unit weight)
+
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 9.8143927385e+02   0.00e+00  3.05e+01    1.000000e+00   1.000000e+00
+   9 1.2622959424e-08  -2.34e-04  3.05e-08    5.059798e-03   3.586969e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.2623e-08
+rel. change during last iteration : -2.34266e-09
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 4.58675e-05
+variance of residuals (reduced chisquare) = WSSR/ndf   : 2.10383e-09
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050598        +/- 2.224e-05    (0.4396%)
+m               = 0.358697         +/- 0.001816     (0.5062%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.864  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:47:39 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat'
+        format = z
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+        residuals are weighted equally (unit weight)
+
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 9.8143927385e+02   0.00e+00  3.05e+01    1.000000e+00   1.000000e+00
+   9 1.2622959424e-08  -2.34e-04  3.05e-08    5.059798e-03   3.586969e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.2623e-08
+rel. change during last iteration : -2.34266e-09
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 4.58675e-05
+variance of residuals (reduced chisquare) = WSSR/ndf   : 2.10383e-09
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050598        +/- 2.224e-05    (0.4396%)
+m               = 0.358697         +/- 0.001816     (0.5062%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.864  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:48:01 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:48:33 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:52:41 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:53:23 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:55:17 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:56:26 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:57:33 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 11:57:47 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:00:25 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:00:46 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:01:22 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:02:56 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:05:29 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:11:15 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:13:30 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:14:51 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:15:15 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:22:34 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 
+
+
+*******************************************************************************
+Tue Nov 25 12:25:01 2025
+
+
+FIT:    data read from '../data/pion_correlator_m=0.dat' u 1:2:3
+        format = x:z:s
+        x range restricted to [4.00000 : 11.0000]
+        #datapoints = 8
+function used for fitting: f(x)
+	f(x) = A*cosh(m*(x-L/2))
+fitted parameters initialized with current variable values
+
+iter      chisq       delta/lim  lambda   A             m            
+   0 6.5599077106e+10   0.00e+00  2.44e+05    1.000000e+00   1.000000e+00
+   9 1.1730668351e+00  -8.61e-05  2.44e-04    5.061398e-03   3.584281e-01
+
+After 9 iterations the fit converged.
+final sum of squares of residuals : 1.17307
+rel. change during last iteration : -8.60981e-10
+
+degrees of freedom    (FIT_NDF)                        : 6
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 0.442166
+variance of residuals (reduced chisquare) = WSSR/ndf   : 0.195511
+p-value of the Chisq distribution (FIT_P)              : 0.978194
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+A               = 0.0050614        +/- 1.901e-05    (0.3756%)
+m               = 0.358428         +/- 0.001798     (0.5017%)
+
+correlation matrix of the fit parameters:
+                A      m      
+A               1.000 
+m              -0.809  1.000 

@@ -61,18 +61,18 @@ contains
        end do
        
        call topological_charge_density(u,top)
-       top_char(i_sweeps) = sum(top)/(2*pi)
-       if(nint(abs(top_char(i_sweeps))) == 0) then
+   
+       !if(nint(abs(sum(top)/(2*pi))) == 2) then
           i_sweeps = i_sweeps + 1
           plqaction(i_sweeps) = action(u)
-          
+          top_char(i_sweeps) = sum(top)/(2*pi)
           do j = 1, Lx
              slb_top_char(j,i_sweeps) = slab_top_char(top,j)
           end do
           !pion_correlator(:,i_sweeps) = pion_propagator(U)/sqrt(1.0_dp*Ly)
           write(69,*) top_char(i_sweeps)
           flush(69)
-       end if
+       !end if
     end do
     
   end subroutine initialization
