@@ -11,18 +11,17 @@ program U1_2d
   integer :: i_b, j
 
   call read_input
-  call set_memory(u,[Lx,Ly],beta,beta_i,beta_f,n_beta,plq_action,top_char,slb_top_char,pion_correlator,n_measurements)
+  call set_memory(u,L,beta,beta_i,beta_f,n_beta,plq_action,top_char,slb_top_char,pion_correlator,n_measurements)
   allocate(avr_top(Lx),err_top(Lx))
-  !print*, beta
-  !call check_CG()
-  !print*,sqrt(2/beta)
+
   call hot_start(u)
+
   open( unit = 10, file = 'data/data.dat', status = 'unknown')
   open( unit = 20, file = 'data/pion_correlator.dat', status = 'unknown')
   open( unit = 30, file = 'data/topological_charge.dat', status = 'unknown')
-  !go to 100
   do i_b = 1, n_beta
      call initialization(u,plq_action,top_char,slb_top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
+
      print*, beta(i_b), avr(plq_action), std_Err(plq_action), avr(top_char),std_err(top_char)
      
      do j = 1, Lx
@@ -33,14 +32,13 @@ program U1_2d
      write(20,"(2/)")
      write(30,"(2/)")
 
-     !print*,beta(i_b), avr_action, err_action, avr_top, err_top
      write(10,*) beta(i_b), avr(plq_action), std_Err(plq_action), avr(top_char),std_err(top_char),&
           avr(top_char**2)/(Lx*Ly),std_err(top_char**2)/(Lx*Ly) 
      flush(10)
      flush(20)
      flush(30)
   end do
-  100 print*, "Goodbye World!"
+  
 contains
 
   function avr(x)

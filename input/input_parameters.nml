@@ -1,13 +1,12 @@
 &parametersfile
-Lx = 16
-Ly = 16
+L = 8,8
 N_thermalization = 1000
 N_measurements = 1000
 N_skip = 10
-beta_i = 2.0
-beta_f = 3.0
-n_beta = 2
-m0 = 100
+beta_i = 0.1
+beta_f = 4.0
+n_beta = 40
+m0 = 1000
 tol=1e-10
 max_iter = 10000
 MD_steps = 15

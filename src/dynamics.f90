@@ -1,3 +1,18 @@
+#define DIM 2,Lx,Ly
+#define CODIM
+#define CDIM
+#define CODIM2
+#define ALLOC
+#define SYNC(u)
+#ifdef PARALLEL
+#define DIM 2,0:Lx+1,0:Ly+1
+#define CODIM ,codimension[*]
+#define CODIM2 ,codimension[:]
+#define CDIM [*]
+#define ALLOC allocatable,
+#define SYNC(u) call sync_lattice(u)
+#endif
+
 module dynamics
 
   use iso_fortran_env, only : dp => real64, i4 => int32
@@ -16,43 +31,52 @@ contains
     complex(dp), allocatable, dimension(:,:,:) :: u
     integer(i4), intent(in) :: L(2)
     real(dp), allocatable, dimension(:) :: beta
-    real(dp), allocatable, dimension(:,:) :: slb_top_char, pion_correlator
+    real(dp), allocatable, dimension(:,:) CDIM :: slb_top_char, pion_correlator
     real(dp), intent(in) :: betai, betaf
-    real(dp), allocatable, dimension(:) :: plqaction, top_char
+    real(dp), allocatable, dimension(:) CODIM :: plqaction, top_char
     integer(i4), intent(in) :: nbeta, n_measurements
     real(dp), allocatable, dimension(:) :: beta_copy
     integer(i4) :: i_beta
+
+    call set_pbc(L)
+
+    Lx = L(1)
+    LY = L(2)
+
+#ifdef PARALLEL
+    Lx = Lx/cores(1)
+    Ly = Ly/cores(2)
+#endif
     
-    call set_pbc(L(1))
-    allocate(u(2,L(1),L(2)))
+    allocate(u(DIM)CDIM)
+    
+
     allocate(beta(nbeta))
 
     do i_beta = 1, nbeta 
        beta(i_beta) = betai + (betaf - betai)/(nbeta-1)*(i_beta-1)
     end do
    
-    !print*, sgnp
-    !print*, sgnm
     sigma(1,:,:) = reshape([0.0_dp,1.0_dp,1.0_dp,0.0_dp],[2,2])
     sigma(2,:,:) = reshape([(0.0_dp,0.0_dp),i,-i,(0.0_dp,0.0_dp)],[2,2])
-    allocate(plqaction(n_measurements),top_char(N_measurements))
+    allocate(plqaction(n_measurements)CDIM,top_char(N_measurements)CDIM)
     allocate(slb_top_char(L(1),n_measurements))
     allocate(pion_correlator(L(1),n_measurements))
   end subroutine set_memory
   
   subroutine initialization(u,plqaction,top_char,slb_top_char,pion_correlator,beta,N_thermalization,N_measurements, N_skip)
-    use parameters, only : Lx, Ly
-    complex(dp), dimension(:,:,:), intent(inout) :: u
-    real(dp), dimension(:), intent(out) :: plqaction, top_char
+    use parameters, only : L, Lx, Ly
+    complex(dp), dimension(DIM) CODIM, intent(inout) :: u
+    real(dp), dimension(:) CODIM, intent(out) :: plqaction, top_char
     integer(i4), intent(in) :: N_thermalization, N_measurements, N_skip
-    real(dp), dimension(:,:), intent(out) :: slb_top_char, pion_correlator
+    real(dp), dimension(:,:) CODIM, intent(out) :: slb_top_char, pion_correlator
     real(dp), intent(in) :: beta
-    real(dp) :: top(size(u(1,:,1)),size(u(1,1,:)))
+    real(dp) CODIM :: top(Lx,Ly)
     integer(i4) :: i_skip, i_sweeps, j
 
     call thermalization(u, N_thermalization, beta)
 
-    open(unit = 69, file = 'data/history_top.dat',status = 'unknown')
+    !open(unit = 69, file = 'data/history_top.dat',status = 'unknown')
     !do i_sweeps = 1, N_measurements
     i_sweeps = 0
     do while(i_sweeps < N_measurements)
@@ -61,17 +85,25 @@ contains
        end do
        
        call topological_charge_density(u,top)
-   
+
+
+       
        !if(nint(abs(sum(top)/(2*pi))) == 2) then
           i_sweeps = i_sweeps + 1
           plqaction(i_sweeps) = action(u)
           top_char(i_sweeps) = sum(top)/(2*pi)
-          do j = 1, Lx
-             slb_top_char(j,i_sweeps) = slab_top_char(top,j)
-          end do
+          
+#ifdef PARALLEL
+          sync all
+          call co_sum(plqaction(isweeps),result_image = 1)
+          call co_sum(top_char(isweeps),result_image = 1)
+#endif
+          !do j = 1, Lx
+          !   slb_top_char(j,i_sweeps) = slab_top_char(top,j)
+          !end do
           !pion_correlator(:,i_sweeps) = pion_propagator(U)/sqrt(1.0_dp*Ly)
-          write(69,*) top_char(i_sweeps)
-          flush(69)
+          !write(69,*) top_char(i_sweeps)
+          !flush(69)
        !end if
     end do
     
@@ -79,7 +111,7 @@ contains
   
   subroutine thermalization(u,N_thermalization,beta)
 
-    complex(dp), dimension(:,:,:), intent(inout) :: u
+    complex(dp), dimension(DIM) CODIM, intent(inout) :: u
     integer(i4) :: N_thermalization
     real(dp) :: beta
 
@@ -94,14 +126,13 @@ contains
   subroutine hot_start(u)
     use parameters, only : Lx, Ly
     
-    complex(dp), intent(out), dimension(2,Lx,Ly) :: u
+    complex(dp), intent(out), dimension(DIM) CODIM :: u
     real(dp), dimension(2,Lx,Ly) :: phi
 
     call random_number(phi)
 
     phi = 2*pi*phi
-    u = exp(i*phi)
-    
+    u(:,1:Lx,1:Ly) = exp(i*phi); SYNC(u)
   end subroutine hot_start
 
   subroutine cold_start(u)
@@ -114,7 +145,7 @@ contains
   
   subroutine sweeps(u,beta)
 
-    complex(dp), dimension(:,:,:), intent(inout) :: u
+    complex(dp), dimension(DIM) CODIM, intent(inout) :: u
     real(dp), intent(in) :: beta
     integer(i4) :: x,y,mu
     
@@ -122,71 +153,59 @@ contains
    
   end subroutine sweeps
 
-  subroutine metropolis(u,x,mu,beta)
-
-    complex(dp), dimension(:,:,:), intent(inout) :: u
-    integer(i4), intent(in) :: x(2), mu
-    real(dp), intent(in) :: beta
-    
-    complex(dp) :: u_new
-    real(dp) :: phi
-    real(dp) :: p, deltaS
-    real(dp) :: r
-    
-    call random_number(phi)
-    phi = 2*pi*phi
-    u_new = exp(i*phi)
-
-    deltaS = DS(u(mu,x(1),x(2)),u_new,beta,staples(u,x,mu))
-
-    call random_number(r)
-    p = min(1.0_dp,exp(-DeltaS))
-    if ( r <= p )then
-       u(mu,x(1),x(2)) = u_new
-    end if
-    
-  end subroutine metropolis
 
   subroutine hmc(U, beta)
     use parameters, only : m0, Lx, Ly, N => MD_steps, Time => trajectory_length
-    complex(dp), intent(inout) :: U(2,Lx,Ly)
+    complex(dp), intent(inout) CODIM :: U(DIM)
     real(dp), intent(in) :: beta
-    complex(dp), dimension(2,Lx,Ly) ::  Up
+    complex(dp), ALLOC dimension(DIM) CODIM2 ::  Up
     real(dp), dimension(2,Lx,Ly) :: Forces, p, pnew
-    complex(dp), dimension(2,Lx,Ly) :: psi, chi,phi
+    complex(dp), ALLOC dimension(DIM) CODIM2 :: psi, chi,phi
     integer(i4) :: k, x, y, mu
-    real(dp) :: DeltaH,r, deltaT, DS, S0
-
+    real(dp) :: r, deltaT, DS, S0
+    real(dp) CODIM2 :: DeltaH
+    logical  CODIM2 :: condition
+    
     deltat = Time/N
     call generate_pi(p)
     chi%im = 0.0_dp
     call generate_pi(chi%re)
 
-    phi = D(chi,U)
-    psi = conjugate_gradient(phi,U)
-    S0 = sum(conjg(phi)*psi)
+#ifdef PARALLEL
+    allocate(Up(DIM)[*])
+    allocate(psi(DIM)[*])
+    allocate(phi(DIM)[*])
+    allocate(chi(DIM)[*])
+    allocate(DeltaH[*])
+    allocate(condition CO)
+#endif
+
+    phi(:,1:Lx,1:Ly) = D(chi,U)
+    SYNC(phi)
+    psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,U)
+    SYNC(psi)
+    
+    S0 = sum(conjg(phi(:,1:Lx,1:Ly))*psi(:,1:Lx,1:Ly))
     
     !! k = 0
     !U_0
     up = u
     !P_0
     pnew = p
-
+    
     !Compute F[U_0]
     call compute_forces(Forces,beta,u,psi, chi)
-    
-
+  
     ! Compute P_{1/2} = P_0 + 0.5*dt*F[U_0]
     pnew = pnew + 0.5*deltaT*Forces
  
     ! k = 1, n -1
     do k = 1, N - 1
        !U_k = exp(i*dt*P_{k-1/2})U_{k-1}
-       up = up * exp(i*DeltaT*pnew)
-       
+       up(:,1:Lx,1:Ly) = up(:,1:Lx,1:Ly) * exp(i*DeltaT*pnew); SYNC(up)
        !compute F[U_k]
-       psi = conjugate_gradient(phi,Up)
-       chi = Ddagger(psi,Up)
+       psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,Up); SYNC(psi)
+       chi(:,1:Lx,1:Ly) = Ddagger(psi,Up); SYNC(chi)
        call compute_forces(Forces,beta,up,psi,chi)
       
        !P_{k+1/2} = P_{k-1/2} + dt*F[U_k]
@@ -196,10 +215,9 @@ contains
 
     ! k = n
     !U_n = exp(i*dt*P_{n-1/2})U_{n-1}
-    up = up * exp(i*DeltaT*pnew)
-
-    psi = conjugate_gradient(phi,Up)
-    chi = Ddagger(psi,Up)
+    up(:,1:Lx,1:Ly)  = up(:,1:Lx,1:Ly) * exp(i*DeltaT*pnew); SYNC(up)
+    psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,Up); SYNC(psi)
+    chi(:,1:Lx,1:Ly) = Ddagger(psi,Up); SYNC(chi)
     !compute F[U_n]
     call compute_forces(Forces,beta,up,psi,chi)
 
@@ -209,10 +227,22 @@ contains
 
     ! Metropolis step
 
-    DS = sum(conjg(phi)*psi) - S0 
+    DS = sum(conjg(phi(:,1:Lx,1:Ly))*psi(:,1:Lx,1:Ly)) - S0 
     DeltaH = DH(u,up,p,pnew,beta)+DS
-    call random_number(r)
-    if( r <= exp(-DeltaH) ) u = up
+    
+#if defined(PARALLEL)
+    sync all
+    call co_sum(DeltaH,result_image = 1)
+    if(this_image() == 1) then 
+#endif
+       call random_number(r)
+       condition = r <= exp(-DeltaH)
+#if defined(PARALLEL)
+    end if
+    call co_broadcast(condition,source_image=1)
+#endif
+    if( condition ) u = up
+
     
   end subroutine hmc
 
@@ -292,7 +322,7 @@ contains
   
   function DH(U,Unew,P,Pnew,beta)
     real(dp) :: DH
-    complex(dp), dimension(:,:,:), intent(in) :: U, Unew
+    complex(dp), dimension(DIM) CODIM, intent(in) :: U, Unew
     real(dp), dimension(:,:,:), intent(in) :: P, Pnew
     real(dp), intent(in) :: beta
     integer(i4) :: x, y,mu, Lx, Ly
@@ -338,7 +368,7 @@ contains
 
   subroutine compute_forces(forces,beta,u,psi,chi)
     use parameters, only : Lx, Ly
-    complex(dp), intent(in), dimension(2,Lx,Ly) :: u , psi, chi
+    complex(dp), intent(in), dimension(DIM) CODIM :: u , psi, chi
     real(dp), intent(out), dimension(2,Lx,Ly) :: Forces
     real(dp), intent(in) :: beta
     complex(dp) :: stp, h
@@ -348,8 +378,8 @@ contains
     do ii = 1, Lx
        do jj = 1, Ly
           x = [ii,jj]
-          xp1 = ipf(x,1)
-          xp2 = ipf(x,2)
+          xp1 = ip(x,1)
+          xp2 = ip(x,2)
           forces(1,x(1),x(2)) = aimag( &
                -beta*u(1,x(1),x(2))*conjg(staples(u,x,1)) + &
                U(1,x(1),x(2))*conjg(psi(1,x(1),x(2))-psi(2,x(1),x(2)))*sgnp(ii)*(chi(1,xp1(1),xp1(2)) - chi(2,xp1(1),xp1(2)))-&
@@ -370,7 +400,7 @@ contains
 
   function D(phi,U)
     use parameters, only : Lx, Ly, m0
-    complex(dp), dimension(2,Lx,Ly), intent(in) :: U, phi
+    complex(dp), dimension(DIM) CODIM, intent(in) :: U, phi
     complex(dp), dimension(2,Lx,Ly) :: D
     integer(i4) :: ii,jj,mu, alpha, beta
     integer(i4), dimension(2) :: x, xm1, xm2,xp1, xp2
@@ -380,10 +410,10 @@ contains
     do ii = 1, Lx
        do jj = 1, Ly
           x = [ii,jj]
-          xm1 = imf(x,1)
-          xm2 = imf(x,2)
-          xp1 = ipf(x,1)
-          xp2 = ipf(x,2)
+          xm1 = im(x,1)
+          xm2 = im(x,2)
+          xp1 = ip(x,1)
+          xp2 = ip(x,2)
           D(1,x(1),x(2)) = (m0+2.0_dp) * phi(1,x(1),x(2)) - 0.5*( &
                U(1,x(1),x(2))*sgnp(ii)*(phi(1,xp1(1),xp1(2)) -  phi(2,xp1(1),xp1(2))) + &
                U(2,x(1),x(2))         *(phi(1,xp2(1),xp2(2)) +i*phi(2,xp2(1),xp2(2))) + &
@@ -403,7 +433,7 @@ contains
 
   function Ddagger(phi,U)
     use parameters, only : Lx, Ly, m0
-    complex(dp), dimension(2,Lx,Ly), intent(in) :: U, phi
+    complex(dp), dimension(DIM), CODIM, intent(in) :: U, phi
     complex(dp), dimension(2,Lx,Ly) :: Ddagger
     integer(i4) :: x(2), xm1(2), xm2(2),xp1(2), xp2(2), alpha, beta, mu
     integer(i4) :: ii, jj
@@ -411,10 +441,10 @@ contains
     do ii = 1, Lx
        do jj = 1, Ly
           x = [ii,jj]
-          xm1 = imf(x,1)
-          xm2 = imf(x,2)
-          xp1 = ipf(x,1)
-          xp2 = ipf(x,2)
+          xm1 = im(x,1)
+          xm2 = im(x,2)
+          xp1 = ip(x,1)
+          xp2 = ip(x,2)
           Ddagger(1,x(1),x(2)) = (m0+2.0_dp) * phi(1,x(1),x(2)) - 0.5*( &
                conjg(U(1,xm1(1),xm1(2)))*sgnm(ii)*(phi(1,xm1(1),xm1(2)) -  phi(2,xm1(1),xm1(2))) + &
                conjg(U(2,xm2(1),xm2(2)))         *(phi(1,xm2(1),xm2(2)) +i*phi(2,xm2(1),xm2(2))) + &
@@ -435,7 +465,7 @@ contains
   
   function DDdagger(phi,U)
     use parameters, only : Lx, Ly
-    complex(dp), dimension(2,Lx,Ly), intent(in) :: U, phi
+    complex(dp), dimension(DIM) CODIM, intent(in) :: U, phi
     complex(dp), dimension(2,Lx,Ly) :: DDdagger
 
     DDdagger = D(Ddagger(phi,U),U)
@@ -444,7 +474,7 @@ contains
   
   function Dinv(phi,U)
     use parameters, only : Lx, Ly
-    complex(dp), dimension(2,Lx,Ly), intent(in) :: phi, U
+    complex(dp), dimension(DIM) CODIM, intent(in) :: phi, U
     complex(dp), dimension(2,Lx,Ly) :: Dinv
 
     Dinv = Ddagger(conjugate_gradient(phi,U),U) 
@@ -484,7 +514,7 @@ contains
  
   function conjugate_gradient(phi,U) result(x)
     use parameters, only : Lx, Ly, max_iter, tol
-    complex(dp), dimension(2,Lx,Ly), intent(in) :: U, phi
+    complex(dp), dimension(DIM) CODIM, intent(in) :: U, phi
     complex(dp), dimension(2,Lx,Ly) :: x
     complex(dp), dimension(2,Lx,Ly) :: r,p,Ad
     complex(dp) :: alpha
@@ -569,10 +599,10 @@ contains
   end function bcg
 
   function pion_propagator(U)
-    use parameters, only : Lx, Ly
-    complex(dp), dimension(2,Lx,Ly), intent(in) :: U
+    use parameters, only : Lx, Ly, L
+    complex(dp), dimension(DIM) CODIM, intent(in) :: U
     complex(dp), dimension(2,Lx,Ly) :: S1, S2, DinvS1, DinvS2
-    real(dp), dimension(Lx) :: pion_propagator
+    real(dp), dimension(L(1)) :: pion_propagator
     integer(i4) :: x, y
 
     S1 = (0.0_dp,0.0_dp)
@@ -598,9 +628,8 @@ contains
   end function pion_propagator
   
   function staples(u,x,mu)
-
     complex(dp) :: staples
-    complex(dp), dimension(:,:,:), intent(in) :: u
+    complex(dp), dimension(DIM) CODIM, intent(in) :: u
     integer(i4), intent(in) :: x(2), mu
     integer(i4), dimension(2) :: x2, x3, x4, x5, x6
 
@@ -612,11 +641,11 @@ contains
        nu = 1
     end if
 
-    x2 = ipf(x,nu)
-    x3 = ipf(x,mu)
-    x4 = imf(x,nu)
+    x2 = ip(x,nu)
+    x3 = ip(x,mu)
+    x4 = im(x,nu)
     x5 = x4
-    x6 = imf(x3,nu)
+    x6 = im(x3,nu)
     
     staples = u(nu,x(1),x(2)) * u(mu,x2(1), x2(2)) * conjg( u(nu,x3(1), x3(2)) ) + &
          conjg( u(nu,x4(1),x4(2)) ) * u(mu,x5(1), x5(2)) * u(nu,x6(1), x6(2))
@@ -633,16 +662,15 @@ contains
   end function DS
   
   function plaquette(u,x)
-
     complex(dp) :: plaquette
     
-    complex(dp), dimension(:,:,:), intent(in) :: u
+    complex(dp), dimension(DIM) CODIM, intent(in) :: u
     integer(i4), intent(in) :: x(2)
     integer(i4), dimension(2) :: x2, x3
 
 
-    x2 = ipf(x,1)
-    x3 = ipf(x,2)
+    x2 = ip(x,1)
+    x3 = ip(x,2)
     
     plaquette = U(1,x(1),x(2)) * U(2,x2(1),x2(2)) * &
           conjg(U(1,x3(1),x3(2))) * conjg(U(2,x(1),x(2)))
@@ -663,7 +691,7 @@ contains
        end do
     end do
 
-    action = action / (Lx*Ly)
+    
     
   end function action
 
@@ -672,7 +700,7 @@ contains
 
     use parameters, only : Lx, Ly
     real(dp) :: action2
-    complex(dp), dimension(:,:,:), intent(in) :: u
+    complex(dp), dimension(DIM) CODIM, intent(in) :: u
     real(dp), intent(in) :: beta
     integer(i4) :: x,y
 
@@ -689,8 +717,9 @@ contains
   end function action2
 
   subroutine topological_charge_density(u,top)
-    complex(dp), dimension(:,:,:), intent(in) :: u
-    real(dp), intent(out) :: top(size(u(1,:,1)),size(u(1,1,:))) 
+    use paramaters, only : Lx, Ly
+    complex(dp), dimension(DIM) CODIM, intent(in) :: u
+    real(dp), intent(out) :: top(2,Lx,Ly) 
     integer(i4) :: i, j
     complex(dp) :: plq
     
@@ -714,5 +743,25 @@ contains
     
   end function slab_top_char
 
+
+#if PARALLEL == 1
+  subroutine sync_lattice(u)
+    complex(dp), dimension(DIM) :: u[*]
+
+    !Send edges
+    u(:, Lx+1, 1:Ly)[left]  = u(:, 1 , 1:Ly)
+    u(:, 0   , 1:Ly)[right] = u(:, Lx, 1:Ly)
+    u(:, 1:Lx, Ly+1)[down]  = u(:, 1:Lx, 1)
+    u(:, 1:Lx, 0   )[up]    = u(:, 1:Lx, Ly)
+
+    !Send corners
+    u(:, Lx+1, Ly+1 )[left_down]  = u(:, 1 , 1 )
+    u(:, Lx+1, 0    )[left_up]    = u(:, 1 , Ly)
+    u(:, 0   , Ly+1 )[right_down] = u(:, Lx, 1 )
+    u(:, 0   , 0    )[right_up]   = u(:, Lx, Ly)
+
+    sync all
+  end subroutine sync_lattice
+#endif
   
 end module dynamics
