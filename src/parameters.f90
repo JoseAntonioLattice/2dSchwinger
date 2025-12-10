@@ -1,3 +1,11 @@
+#if defined(PARALLEL)
+#define IFPARALLEL if(this_image()==1)then
+#define ENDIFPARALLEL endif
+#elif !defined(PARALLEL)
+#define IFPARALLEL 
+#define ENDIFPARALLEL 
+#endif
+
 module parameters
 
   use iso_fortran_env, only : dp => real64, i4 => int32
@@ -23,14 +31,31 @@ contains
 
     integer(i4) :: inunit
     character(99) :: inputfilename
-    
-    read(*,"(a)") inputfilename
-    print*, 'User typed: ', trim(inputfilename)
-    open(newunit = inunit,file = trim(inputfilename), status = 'old')
-    read(inunit, nml = parametersfile)
-    Lx = L(1)
-    Ly = L(2)
-    write(*,nml = parametersfile)
+
+#ifdef PARALLEL
+    if(this_image()==1) then
+#endif
+       read(*,"(a)") inputfilename
+       print*, 'User typed: ', trim(inputfilename)
+       open(newunit = inunit,file = trim(inputfilename), status = 'old')
+       read(inunit, nml = parametersfile)
+       
+       write(*,nml = parametersfile)
+#ifdef PARALLEL
+    endif
+    call co_broadcast(L,source_image=1)
+    call co_broadcast(N_thermalization,source_image=1)
+    call co_broadcast(N_measurements,source_image=1)
+    call co_broadcast(N_skip,source_image=1)
+    call co_broadcast(beta_i,source_image=1)
+    call co_broadcast(beta_f,source_image=1)
+    call co_broadcast(n_beta,source_image=1)
+    call co_broadcast(m0,source_image=1)
+    call co_broadcast(tol,source_image=1)
+    call co_broadcast(max_iter,source_image=1)
+    call co_broadcast(MD_steps,source_image=1)
+    call co_broadcast(trajectory_length,source_image=1)
+#endif
   end subroutine read_input
 
   

@@ -1,6 +1,7 @@
-#define DIM :
-#ifdef PARALLEL
+#if PARALLEL==1
 #define  DIM 0:
+#elif defined(PARALLEL)
+#define DIM :
 #endif
 
 module pbc
@@ -12,13 +13,13 @@ module pbc
   integer, allocatable, dimension(:) :: ip1, im1, ip2, im2, sgnp, sgnm
   integer, allocatable, dimension(:) :: ip1_c, im1_c, ip2_c, im2_c
 
-  integer :: left, right, up, down, a(2)
+  integer :: left, right, up, down, left_down, left_up, right_down, right_up, a(2)
   
 contains
 
 #ifndef PARALLEL
   subroutine set_pbc(L)
-#else
+#elif defined(PARALLEL)
   subroutine set_pbc(L,cores)
     integer(i4), dimension(2), intent(in) :: cores
 #endif
@@ -26,14 +27,22 @@ contains
 
     allocate(sgnp(L(1)),sgnm(L(1)))
 
+    print*, this_image(), "cores", cores
+    print*, this_image(), "inside set_pbc()"
 #ifndef PARALLEL    
     allocate(ip1(L(1)), im1(L(1)))
     allocate(ip2(L(2)), im2(L(2)))
     call set_periodic_bounds(ip1,im1,L(1))
     call set_periodic_bounds(ip2,im2,L(2))
 #elif defined(PARALLEL)
+    allocate(ip1(L(1)), im1(L(1)))
+    allocate(ip2(L(2)), im2(L(2)))
+    allocate(ip1_c(cores(1)), im1_c(cores(1)))
+    allocate(ip2_c(cores(2)), im2_c(cores(2)))
+    call set_periodic_bounds(ip1,im1,L(1))
+    call set_periodic_bounds(ip2,im2,L(2))
     call set_periodic_bounds(ip1_c,im1_c,cores(1))
-    call set_periodic_bounds(ip1_c,im1_c,cores(2))
+    call set_periodic_bounds(ip2_c,im2_c,cores(2))
 
     a = get_index_array(this_image(),cores)
 
@@ -41,6 +50,11 @@ contains
     right = get_index(ip_core(a,1),cores)
     up    = get_index(im_core(a,2),cores)
     down  = get_index(ip_core(a,2),cores)
+
+    left_down  = get_index(im_core(im_core(a,1),2),cores)
+    left_up    = get_index(ip_core(im_core(a,1),2),cores)
+    right_down = get_index(im_core(ip_core(a,1),2),cores)
+    right_up   = get_index(ip_core(ip_core(a,1),2),cores)
 
 #endif
 
