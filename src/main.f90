@@ -22,7 +22,7 @@ program U1_2d
   call set_memory(u,L,beta,beta_i,beta_f,n_beta,plq_action,top_char,slb_top_char,pion_correlator,n_measurements)
   allocate(avr_top(Lx),err_top(Lx))
 
-  call hot_start(u)
+  call cold_start(u)
 
 IFPARALLEL
   open( unit = 10, file = 'data/data.dat', status = 'unknown')
@@ -34,7 +34,7 @@ ENDIFPARALLEL
      call initialization(u,plq_action,top_char,slb_top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
 
      IFPARALLEL
-     print*, beta(i_b), avr(plq_action), std_Err(plq_action), avr(top_char),std_err(top_char)
+     print*, beta(i_b), avr(plq_action)/product(L), std_Err(plq_action)/product(L), avr(top_char),std_err(top_char)
      ENDIFPARALLEL
      !do j = 1, Lx
      !   write(20,*) j-1,avr(pion_correlator(j,:)),std_err(pion_correlator(j,:))

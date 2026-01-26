@@ -1,5 +1,5 @@
 &parametersfile
-L = 8,8
+L = 16,16
 N_thermalization = 1000
 N_measurements = 1000
 N_skip = 10
@@ -9,6 +9,6 @@ n_beta = 40
 m0 = 1000
 tol=1e-10
 max_iter = 10000
-MD_steps = 15
+MD_steps = 10
 trajectory_length = 1.0
 /

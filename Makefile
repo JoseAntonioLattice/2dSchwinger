@@ -10,7 +10,7 @@ SOURCE = indices.f90 statistics.f90 pbc.f90 arrays.f90 parameters.f90 dynamics.f
 OBJECT = $(patsubst %, $(BIN)/%, $(SOURCE:.f90=.o ) )
 
 #FFLAGS = -Wall -Wextra -fcheck=all -O0 -J$(BIN) -I$(BIN)
-FFLAGS = -O3 -J$(BIN) -I$(BIN) -cpp -DPARALLEL=1
+FFLAGS = -O3 -J$(BIN) -I$(BIN) -cpp -DPARALLEL
 
 
 $(BIN)/$(TARGET): $(OBJECT)

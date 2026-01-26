@@ -13,7 +13,7 @@
 #define CDIM
 #define CODIM2
 #define ALLOC
-#define DIM_CODIM_ALLOC dimension(2,Lx,Ly)
+ #define DIM_CODIM_ALLOC dimension(2,Lx,Ly)
 #define SYNC(u)
 #endif
 
@@ -55,9 +55,12 @@ contains
     end if
     call co_broadcast(cores,source_image=1)
     sync all
-    call set_pbc(L,cores)
+    
     Lx = Lx/cores(1)
     Ly = Ly/cores(2)
+    call set_pbc([Lx,Ly],cores)
+#else
+    call set_pbc([Lx,Ly])
 #endif
     print*, this_image(), "before allocation"
     allocate(u(DIM)CDIM)
@@ -88,7 +91,7 @@ contains
     real(dp) :: top(Lx,Ly)
     integer(i4) :: i_skip, i_sweeps, j
 
-    print*, This_image(), "inside initialization"
+   ! print*, This_image(), "inside initialization"
     call thermalization(u, N_thermalization, beta)
 
     !open(unit = 69, file = 'data/history_top.dat',status = 'unknown')
@@ -109,8 +112,8 @@ contains
         !  top_char(i_sweeps) = sum(top)/(2*pi)
           
 #ifdef PARALLEL
-        !  sync all
-        !  call co_sum(plqaction(i_sweeps),result_image = 1)
+          sync all
+          call co_sum(plqaction(i_sweeps),result_image = 1)
         !  call co_sum(top_char(i_sweeps),result_image = 1)
 #endif
           !do j = 1, Lx
@@ -134,6 +137,7 @@ contains
 
     do i_sweeps = 1, N_thermalization
        call sweeps(u,beta)
+       !print*, this_image(), "Done sweep"
     end do
     
   end subroutine thermalization
@@ -166,8 +170,9 @@ contains
     real(dp), intent(in) :: beta
     integer(i4) :: x,y,mu
 
-    print*, this_image(), "inside sweeps"
+    !print*, this_image(), "inside sweeps"
     call hmc(U,beta)
+    !print*, this_image(),"Done hmc"
    
   end subroutine sweeps
 
@@ -181,30 +186,34 @@ contains
     complex(dp), DIM_CODIM_ALLOC :: psi, chi, phi
     integer(i4) :: k, x, y, mu
     real(dp) :: r, deltaT, DS, S0
-    real(dp) ALLOC :: DeltaH CDIM2
+    real(dp) ALLOC CODIM2 :: DeltaH
     logical :: condition
     
 
-    print*, this_image(), "inside hmc"
+    !print*, this_image(), "inside hmc"
 #ifdef PARALLEL
     allocate(Up(DIM)[*])
     allocate(psi(DIM)[*])
     allocate(phi(DIM)[*])
     allocate(chi(DIM)[*])
     allocate(DeltaH[*])
-    print*, this_image(), "inside hmc. Allocation suceesful"
+    !print*, this_image(), "inside hmc. Allocation suceesful"
 #endif
 
     
     deltat = Time/N
     call generate_pi(p)
-    chi%im = 0.0_dp
-    call generate_pi(chi%re)
-    
-    phi(:,1:Lx,1:Ly) = D(chi,U); SYNC(phi)
-    psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,U); SYNC(psi)
-    
-    S0 = sum(conjg(phi(:,1:Lx,1:Ly))*psi(:,1:Lx,1:Ly))
+    !if(this_image() == 1)then
+    !   print*, "printing p", p
+    !end if
+    !chi%im = 0.0_dp
+    !call generate_pi(chi(:,1:Lx,1:Ly)%re); SYNC(chi)
+    !phi(:,1:Lx,1:Ly) = D(chi,U); SYNC(phi)
+    !if(this_image() == 1)then
+    !   print*, "printing phi", phi
+    !end if
+    !psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,U); SYNC(psi)
+    !S0 = sum(conjg(phi(:,1:Lx,1:Ly))*psi(:,1:Lx,1:Ly))
     
     !! k = 0
     !U_0
@@ -214,7 +223,7 @@ contains
     
     !Compute F[U_0]
     call compute_forces(Forces,beta,u,psi, chi)
-  
+    
     ! Compute P_{1/2} = P_0 + 0.5*dt*F[U_0]
     pnew = pnew + 0.5*deltaT*Forces
  
@@ -223,20 +232,20 @@ contains
        !U_k = exp(i*dt*P_{k-1/2})U_{k-1}
        up(:,1:Lx,1:Ly) = up(:,1:Lx,1:Ly) * exp(i*DeltaT*pnew); SYNC(up)
        !compute F[U_k]
-       psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,Up); SYNC(psi)
-       chi(:,1:Lx,1:Ly) = Ddagger(psi,Up); SYNC(chi)
+       !psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,Up); SYNC(psi)
+       !chi(:,1:Lx,1:Ly) = Ddagger(psi,Up); SYNC(chi)
        call compute_forces(Forces,beta,up,psi,chi)
       
        !P_{k+1/2} = P_{k-1/2} + dt*F[U_k]
        pnew = pnew + deltaT*Forces
        
-    end do 
-
+    end do
+    !print*, this_image(), "done MC dynamics"
     ! k = n
     !U_n = exp(i*dt*P_{n-1/2})U_{n-1}
     up(:,1:Lx,1:Ly)  = up(:,1:Lx,1:Ly) * exp(i*DeltaT*pnew); SYNC(up)
-    psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,Up); SYNC(psi)
-    chi(:,1:Lx,1:Ly) = Ddagger(psi,Up); SYNC(chi)
+    !psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,Up); SYNC(psi)
+    !chi(:,1:Lx,1:Ly) = Ddagger(psi,Up); SYNC(chi)
     !compute F[U_n]
     call compute_forces(Forces,beta,up,psi,chi)
 
@@ -246,8 +255,8 @@ contains
 
     ! Metropolis step
 
-    DS = sum(conjg(phi(:,1:Lx,1:Ly))*psi(:,1:Lx,1:Ly)) - S0 
-    DeltaH = DH(u,up,p,pnew,beta)+DS
+    !DS = sum(conjg(phi(:,1:Lx,1:Ly))*psi(:,1:Lx,1:Ly)) - S0 
+    DeltaH = DH(u,up,p,pnew,beta)!+DS
     
 #if defined(PARALLEL)
     sync all
@@ -262,6 +271,14 @@ contains
 #endif
     if( condition ) u = up
 
+#ifdef PARALLEL
+    deallocate(Up)
+    deallocate(psi)
+    deallocate(phi)
+    deallocate(chi)
+    deallocate(DeltaH)
+    !print*, this_image(), "inside hmc. Deallocation suceesful"
+#endif
 
   end subroutine hmc
 
@@ -399,16 +416,16 @@ contains
           xp1 = ip(x,1)
           xp2 = ip(x,2)
           forces(1,x(1),x(2)) = aimag( &
-               -beta*u(1,x(1),x(2))*conjg(staples(u,x,1)) + &
-               U(1,x(1),x(2))*conjg(psi(1,x(1),x(2))-psi(2,x(1),x(2)))*sgnp(ii)*(chi(1,xp1(1),xp1(2)) - chi(2,xp1(1),xp1(2)))-&
-               conjg(U(1,x(1),x(2))*sgnp(ii)*(psi(1,xp1(1),xp1(2))+psi(2,xp1(1),xp1(2))))*(chi(1,x(1),x(2))+ chi(2,x(1),x(2))) &
-               )
+               -beta*u(1,x(1),x(2))*conjg(staples(u,x,1)) ) 
+              ! U(1,x(1),x(2))*conjg(psi(1,x(1),x(2))-psi(2,x(1),x(2)))*sgnp(ii)*(chi(1,xp1(1),xp1(2)) - chi(2,xp1(1),xp1(2)))-&
+               !conjg(U(1,x(1),x(2))*sgnp(ii)*(psi(1,xp1(1),xp1(2))+psi(2,xp1(1),xp1(2))))*(chi(1,x(1),x(2))+ chi(2,x(1),x(2))) &
+               !)
           
           forces(2,x(1),x(2)) = aimag( &
-               -beta*u(2,x(1),x(2))*conjg(staples(u,x,2)) + &
-               U(2,x(1),x(2))*(conjg(psi(1,x(1),x(2))+i*psi(2,x(1),x(2))))*(chi(1,xp2(1),xp2(2)) + i*chi(2,xp2(1),xp2(2)))+&
-               conjg(U(2,x(1),x(2))*(psi(1,xp2(1),xp2(2))-i*psi(2,xp2(1),xp2(2))))*(-chi(1,x(1),x(2))+ i*chi(2,x(1),x(2))) &
-               )
+               -beta*u(2,x(1),x(2))*conjg(staples(u,x,2)))! + &
+               !U(2,x(1),x(2))*(conjg(psi(1,x(1),x(2))+i*psi(2,x(1),x(2))))*(chi(1,xp2(1),xp2(2)) + i*chi(2,xp2(1),xp2(2)))+&
+               !conjg(U(2,x(1),x(2))*(psi(1,xp2(1),xp2(2))-i*psi(2,xp2(1),xp2(2))))*(-chi(1,x(1),x(2))+ i*chi(2,x(1),x(2))) &
+               !)
        end do
     end do
 
@@ -424,7 +441,7 @@ contains
     integer(i4), dimension(2) :: x, xm1, xm2,xp1, xp2
     complex(dp) :: h
 
-    D = (0.0_dp,0.0_dp)
+   
     do ii = 1, Lx
        do jj = 1, Ly
           x = [ii,jj]
@@ -433,16 +450,16 @@ contains
           xp1 = ip(x,1)
           xp2 = ip(x,2)
           D(1,x(1),x(2)) = (m0+2.0_dp) * phi(1,x(1),x(2)) - 0.5*( &
-               U(1,x(1),x(2))*sgnp(ii)*(phi(1,xp1(1),xp1(2)) -  phi(2,xp1(1),xp1(2))) + &
-               U(2,x(1),x(2))         *(phi(1,xp2(1),xp2(2)) +i*phi(2,xp2(1),xp2(2))) + &
+               U(1,x(1),x(2))*sgnp(ii) *(phi(1,xp1(1),xp1(2)) -  phi(2,xp1(1),xp1(2))) + &
+               U(2,x(1),x(2))          *(phi(1,xp2(1),xp2(2)) +i*phi(2,xp2(1),xp2(2))) + &
                conjg(U(1,xm1(1),xm1(2)))*sgnm(ii)*(phi(1,xm1(1),xm1(2)) +  phi(2,xm1(1),xm1(2))) + &
                conjg(U(2,xm2(1),xm2(2)))         *(phi(1,xm2(1),xm2(2)) -i*phi(2,xm2(1),xm2(2))) &
                )
           D(2,x(1),x(2)) = (m0+2.0_dp) * phi(2,x(1),x(2)) - 0.5*( &
-               U(1,x(1),x(2))*sgnp(ii)*(  -phi(1,xp1(1),xp1(2)) + phi(2,xp1(1),xp1(2))) + &
-               U(2,x(1),x(2))         *(-i*phi(1,xp2(1),xp2(2)) + phi(2,xp2(1),xp2(2))) + &
+               U(1,x(1),x(2))*sgnp(ii) *(  -phi(1,xp1(1),xp1(2)) + phi(2,xp1(1),xp1(2))) + &
+               U(2,x(1),x(2))          *(-i*phi(1,xp2(1),xp2(2)) + phi(2,xp2(1),xp2(2))) + &
                conjg(U(1,xm1(1),xm1(2)))*sgnm(ii)*(  phi(1,xm1(1),xm1(2)) + phi(2,xm1(1),xm1(2))) + &
-               conjg(U(2,xm2(1),xm2(2)))         *(i*phi(1,xm2(1),xm2(2)) + phi(2,xm2(1),xm2(2))) &
+                conjg(U(2,xm2(1),xm2(2)))        *(i*phi(1,xm2(1),xm2(2)) + phi(2,xm2(1),xm2(2))) &
                )
        end do
     end do
@@ -493,15 +510,16 @@ contains
   function Dinv(phi,U)
     use parameters, only : Lx, Ly
     complex(dp), dimension(DIM), intent(in) :: phi, U
-    complex(dp), dimension(2,Lx,Ly) :: Dinv
+    complex(dp), dimension(2,Lx,Ly) :: Dinv, CG
 
-    Dinv = Ddagger(conjugate_gradient(phi,U),U) 
+    CG = conjugate_gradient(phi,U)
+    Dinv = Ddagger(CG,U) 
     
   end function Dinv
 
   subroutine check_CG()
     use parameters, only : Lx, Ly
-    complex(dp), dimension(2,Lx,Ly) :: U, phi,phi_p, psi,Dphi,chi,D1,D2
+    complex(dp), dimension(DIM) :: U, phi,phi_p, psi,Dphi,chi,D1,D2
     real(dp), dimension(2,Lx,Ly) :: r
 
     call random_number(r)
@@ -511,30 +529,31 @@ contains
     call generate_pi(chi%re)
 
     phi = D(chi,U)
-
-    !print*,"phi"
-    !print*, phi
-    !print*, "Dphi"
-    !print*, D(phi,U)
-    !print*, "Ddaggerphi"
-    !print*, Ddagger(phi,U)
-    !print*, "DDdaggerphi"
-    !print*, DDdagger(phi,U)
-    !psi = conjugate_gradient(phi,U)
-    !phi_p = DDdagger(psi,U)
-
-    D1 = conjugate_gradient(DDdagger(phi,U),U)!bcg(phi,U)
-    D2 = DDdagger(conjugate_gradient(phi,U),U)!Dinv(phi,U)
-    print*,phi(1,1,1)
-    print*,D1(1,1,1)
-    print*,D2(1,1,1)
+!!$
+!!$    !print*,"phi"
+!!$    !print*, phi
+!!$    !print*, "Dphi"
+!!$    !print*, D(phi,U)
+!!$    !print*, "Ddaggerphi"
+!!$    !print*, Ddagger(phi,U)
+!!$    !print*, "DDdaggerphi"
+!!$    !print*, DDdagger(phi,U)
+!!$    !psi = conjugate_gradient(phi,U)
+!!$    !phi_p = DDdagger(psi,U)
+!!$
+    !call conjugate_gradient(D1,DDdagger(phi,U),U)!bcg(phi,U)
+    !call conjugate_gradient(D2,DDdagger(phi,U),U)!Dinv(phi,U)
+!!$    print*,phi(1,1,1)
+!    print*,D1(1,1,1)
+!!$    print*,D2(1,1,1)
   end subroutine check_CG
  
-  function conjugate_gradient(phi,U) result(x)
+  function conjugate_gradient(phi,U) result(x) 
     use parameters, only : Lx, Ly, max_iter, tol
     complex(dp), dimension(DIM), intent(in) :: U, phi
     complex(dp), dimension(2,Lx,Ly) :: x
-    complex(dp), dimension(2,Lx,Ly) :: r,p,Ad
+    complex(dp), dimension(2,Lx,Ly) :: r,Ad
+    complex(dp), DIM_CODIM_ALLOC :: p
     complex(dp) :: alpha
     complex(dp) ALLOC CODIM2 :: denominator
     real(dp) ALLOC CODIM2 :: err, phi_norm2
@@ -546,12 +565,13 @@ contains
     allocate(denominator[*])
     allocate(err[*])
     allocate(phi_norm2[*])
+    allocate(p(2,0:Lx+1,0:Ly+1)[*])
 #endif
     
-    x = phi
-    Ad = DDdagger(x,U)
+    x = phi(:,1:Lx,1:Ly)
+    Ad = DDdagger(phi,U)
     r = phi(:,1:Lx,1:Ly) - Ad
-    p = r
+    p(:,1:Lx,1:Ly) = r; SYNC(p)
     
     k = 0
     err = real(sum(r*conjg(r)))
@@ -559,9 +579,9 @@ contains
 #if defined(PARALLEL)
     call co_sum(err,result_image = 1)
     call co_broadcast(err,source_image = 1)
+    print*, err
 #endif
 
-    !print*, "err", err
     phi_norm2 = real(sum(phi(:,1:Lx,1:Ly)*conjg(phi(:,1:Lx,1:Ly))))
 
 #if defined(PARALLEL)
@@ -569,20 +589,19 @@ contains
     phi_norm2 = sqrt(phi_norm2)
     call co_broadcast(phi_norm2,source_image = 1)
 #endif
-    !print*, "norm of phi", phi_norm2
+
     do while ( err > tol*phi_norm2 .and. k < max_iter)
        
        Ad = DDdagger(p,U)
-
        rsq = err
-       denominator = sum(p*conjg(Ad))
+       denominator = sum(p(:,1:Lx,1:Ly)*conjg(Ad))
             
 #if defined(PARALLEL)
        call co_sum(denominator,result_image = 1)
        call co_broadcast(denominator,source_image = 1)
 #endif
        alpha = rsq/denominator  
-       x = x + alpha*p
+       x = x + alpha*p(:,1:Lx,1:Ly)
        r = r - alpha*Ad
        
        err = real(sum(r*conjg(r))) 
@@ -591,15 +610,25 @@ contains
        call co_broadcast(err,source_image = 1)
 #endif
        beta = err/rsq
-       p = r + beta*p
+       p(:,1:Lx,1:Ly) = r + beta*p(:,1:Lx,1:Ly); SYNC(p)
        k = k + 1
-       !print*,"k = ",k, "err old = ", rsq ,"err new = ", err
-       if( k >= max_iter) stop "CG. Maximum number of iterations reached. No convergence."
 #if defined(PARALLEL)
+       sync all
+       if(this_image() == 1) then
+#endif
+          print*,"k = ",k, "err old = ", rsq ,"err new = ", err
+          if( k >= max_iter) stop "CG. Maximum number of iterations reached. No convergence."
+#if defined(PARALLEL)
+       endif
        sync all
 #endif
     end do
-    
+#if defined(PARALLEL)
+    deallocate(denominator)
+    deallocate(err)
+    deallocate(phi_norm2)
+    deallocate(p)
+#endif
   end function conjugate_gradient
 
 !!$  function bcg(phi,U) result(x)
@@ -806,12 +835,14 @@ contains
     use parameters, only : Lx, Ly
     complex(dp), dimension(DIM) :: u[*]
 
+    sync all
     !Send edges
     u(:, Lx+1, 1:Ly)[left]  = u(:, 1 , 1:Ly)
     u(:, 0   , 1:Ly)[right] = u(:, Lx, 1:Ly)
     u(:, 1:Lx, Ly+1)[down]  = u(:, 1:Lx, 1)
     u(:, 1:Lx, 0   )[up]    = u(:, 1:Lx, Ly)
 
+    sync all
     !Send corners
     u(:, Lx+1, Ly+1 )[left_down]  = u(:, 1 , 1 )
     u(:, Lx+1, 0    )[left_up]    = u(:, 1 , Ly)

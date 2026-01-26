@@ -1,4 +1,4 @@
-#if PARALLEL==1
+#if PARALLEL
 #define  DIM 0:
 #elif defined(PARALLEL)
 #define DIM :
@@ -35,12 +35,8 @@ contains
     call set_periodic_bounds(ip1,im1,L(1))
     call set_periodic_bounds(ip2,im2,L(2))
 #elif defined(PARALLEL)
-    allocate(ip1(L(1)), im1(L(1)))
-    allocate(ip2(L(2)), im2(L(2)))
     allocate(ip1_c(cores(1)), im1_c(cores(1)))
     allocate(ip2_c(cores(2)), im2_c(cores(2)))
-    call set_periodic_bounds(ip1,im1,L(1))
-    call set_periodic_bounds(ip2,im2,L(2))
     call set_periodic_bounds(ip1_c,im1_c,cores(1))
     call set_periodic_bounds(ip2_c,im2_c,cores(2))
 
@@ -61,9 +57,22 @@ contains
     sgnp = 1
     sgnm = 1
 
-    sgnp(L(1)) = -1
-    sgnm(1) = -1
 
+#if defined(PARALLEL)
+    if( a(1) == cores(1) ) then
+#endif
+       sgnp(L(1)) = -1
+#if defined(PARALLEL)
+    endif
+    if( a(1) == 1 ) then
+#endif       
+       sgnm(1) = -1
+#if defined(PARALLEL)       
+    endif
+    print*, this_image(),",", sgnp
+    print*, this_image(),",", sgnm
+#endif
+    
 
     
   end subroutine set_pbc
@@ -85,9 +94,9 @@ contains
   end subroutine set_periodic_bounds
   
   function ip(x, mu)
-    integer(i4), dimension(DIM), intent(in) :: x
+    integer(i4), dimension(2), intent(in) :: x
     integer(i4) :: mu
-    integer(i4), dimension(size(x)) :: ip
+    integer(i4), dimension(2) :: ip
 
     ip = x
 
@@ -104,9 +113,9 @@ contains
   end function ip
 
   function im(x, mu)
-    integer(i4), dimension(DIM), intent(in) :: x
+    integer(i4), dimension(2), intent(in) :: x
     integer(i4) :: mu
-    integer(i4), dimension(size(x)) :: im
+    integer(i4), dimension(2) :: im
     
     im = x
 
