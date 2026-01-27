@@ -22,8 +22,8 @@ $(BIN)/%.o: $(SRC)/%.f90
 .PHONY: help run clean
 
 run:
-	@echo "input/input_parameters.nml" | time $(BIN)/$(TARGET)
-
+#	@echo "input/input_parameters.nml" | time $(BIN)/$(TARGET)
+	{ echo "input/input_parameters.nml"; echo 1 2; } | cafrun -n 2 $(BIN)/$(TARGET)
 clean:
 	rm -f $(OBJECT) $(BIN)/$(TARGET)
 

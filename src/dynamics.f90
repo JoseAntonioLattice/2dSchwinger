@@ -13,7 +13,7 @@
 #define CDIM
 #define CODIM2
 #define ALLOC
- #define DIM_CODIM_ALLOC dimension(2,Lx,Ly)
+#define DIM_CODIM_ALLOC dimension(2,Lx,Ly)
 #define SYNC(u)
 #endif
 
@@ -63,6 +63,7 @@ contains
     call set_pbc([Lx,Ly])
 #endif
     print*, this_image(), "before allocation"
+    print*, this_image(), left, right, up, down, left_down, left_up, right_down, right_up
     allocate(u(DIM)CDIM)
     allocate(beta(nbeta))
     print*, this_image(), "allocation succesful"
@@ -222,7 +223,7 @@ contains
     pnew = p
     
     !Compute F[U_0]
-    call compute_forces(Forces,beta,u,psi, chi)
+    call compute_forces(Forces,beta,up,psi, chi)
     
     ! Compute P_{1/2} = P_0 + 0.5*dt*F[U_0]
     pnew = pnew + 0.5*deltaT*Forces
@@ -230,7 +231,7 @@ contains
     ! k = 1, n -1
     do k = 1, N - 1
        !U_k = exp(i*dt*P_{k-1/2})U_{k-1}
-       up(:,1:Lx,1:Ly) = up(:,1:Lx,1:Ly) * exp(i*DeltaT*pnew); SYNC(up)
+       up(:,1:Lx,1:Ly) = up(:,1:Lx,1:Ly) * exp(i*DeltaT*pnew); call sync_lattice(up)
        !compute F[U_k]
        !psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,Up); SYNC(psi)
        !chi(:,1:Lx,1:Ly) = Ddagger(psi,Up); SYNC(chi)
@@ -243,7 +244,7 @@ contains
     !print*, this_image(), "done MC dynamics"
     ! k = n
     !U_n = exp(i*dt*P_{n-1/2})U_{n-1}
-    up(:,1:Lx,1:Ly)  = up(:,1:Lx,1:Ly) * exp(i*DeltaT*pnew); SYNC(up)
+    up(:,1:Lx,1:Ly)  = up(:,1:Lx,1:Ly) * exp(i*DeltaT*pnew); call sync_lattice(up)
     !psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,Up); SYNC(psi)
     !chi(:,1:Lx,1:Ly) = Ddagger(psi,Up); SYNC(chi)
     !compute F[U_n]
@@ -251,7 +252,7 @@ contains
 
     
     !P_n = P_{n-1/2} + 0.5*dt*F[U_n]
-    p = p + 0.5*DeltaT*Forces
+    pnew = pnew + 0.5*DeltaT*Forces
 
     ! Metropolis step
 
@@ -264,7 +265,7 @@ contains
     if(this_image() == 1) then 
 #endif
        call random_number(r)
-       condition = r <= exp(-DeltaH)
+       condition = (r <= exp(-DeltaH))
 #if defined(PARALLEL)
     end if
     call co_broadcast(condition,source_image=1)
@@ -408,13 +409,12 @@ contains
     real(dp), intent(in) :: beta
     complex(dp) :: stp, h
     integer(i4) :: x(2), xp1(2), xp2(2), ii, jj
-
     
     do ii = 1, Lx
        do jj = 1, Ly
           x = [ii,jj]
-          xp1 = ip(x,1)
-          xp2 = ip(x,2)
+          !xp1 = ip(x,1)
+          !xp2 = ip(x,2)
           forces(1,x(1),x(2)) = aimag( &
                -beta*u(1,x(1),x(2))*conjg(staples(u,x,1)) ) 
               ! U(1,x(1),x(2))*conjg(psi(1,x(1),x(2))-psi(2,x(1),x(2)))*sgnp(ii)*(chi(1,xp1(1),xp1(2)) - chi(2,xp1(1),xp1(2)))-&
@@ -429,8 +429,6 @@ contains
        end do
     end do
 
-
-    
   end subroutine compute_forces
 
   function D(phi,U)
@@ -440,7 +438,6 @@ contains
     integer(i4) :: ii,jj,mu, alpha, beta
     integer(i4), dimension(2) :: x, xm1, xm2,xp1, xp2
     complex(dp) :: h
-
    
     do ii = 1, Lx
        do jj = 1, Ly
@@ -459,7 +456,7 @@ contains
                U(1,x(1),x(2))*sgnp(ii) *(  -phi(1,xp1(1),xp1(2)) + phi(2,xp1(1),xp1(2))) + &
                U(2,x(1),x(2))          *(-i*phi(1,xp2(1),xp2(2)) + phi(2,xp2(1),xp2(2))) + &
                conjg(U(1,xm1(1),xm1(2)))*sgnm(ii)*(  phi(1,xm1(1),xm1(2)) + phi(2,xm1(1),xm1(2))) + &
-                conjg(U(2,xm2(1),xm2(2)))        *(i*phi(1,xm2(1),xm2(2)) + phi(2,xm2(1),xm2(2))) &
+               conjg(U(2,xm2(1),xm2(2)))         *(i*phi(1,xm2(1),xm2(2)) + phi(2,xm2(1),xm2(2))) &
                )
        end do
     end do
