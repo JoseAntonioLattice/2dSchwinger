@@ -18,6 +18,8 @@ program U1_2d
 
   integer :: i_b, j
 
+  call random_init(.false.,.true.)
+  
   call read_input
   call set_memory(u,L,beta,beta_i,beta_f,n_beta,plq_action,top_char,slb_top_char,pion_correlator,n_measurements)
   allocate(avr_top(Lx),err_top(Lx))

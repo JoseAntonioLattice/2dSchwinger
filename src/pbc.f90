@@ -1,6 +1,6 @@
-#if PARALLEL
-#define  DIM 0:
-#elif defined(PARALLEL)
+#if defined(PARALLEL)
+#define DIM 0:
+#elif !defined(PARALLEL)
 #define DIM :
 #endif
 
@@ -27,14 +27,16 @@ contains
 
     allocate(sgnp(L(1)),sgnm(L(1)))
 
-    print*, this_image(), "cores", cores
-    print*, this_image(), "inside set_pbc()"
-#ifndef PARALLEL    
+    
+#ifndef PARALLEL
+    
     allocate(ip1(L(1)), im1(L(1)))
     allocate(ip2(L(2)), im2(L(2)))
     call set_periodic_bounds(ip1,im1,L(1))
     call set_periodic_bounds(ip2,im2,L(2))
 #elif defined(PARALLEL)
+    print*, this_image(), "cores", cores
+    print*, this_image(), "inside set_pbc()"
     allocate(ip1_c(cores(1)), im1_c(cores(1)))
     allocate(ip2_c(cores(2)), im2_c(cores(2)))
     call set_periodic_bounds(ip1_c,im1_c,cores(1))
@@ -107,7 +109,7 @@ contains
     case(2)
        ip(mu) = ip2(x(mu))
     end select
-#else
+#elif defined(PARALLEL)
     ip(mu) = x(mu) + 1
 #endif
   end function ip
@@ -126,7 +128,7 @@ contains
     case(2)
        im(mu) = im2(x(mu))
     end select
-#else
+#elif defined(PARALLEL)
     im(mu) = x(mu) - 1
 #endif
   end function im
@@ -146,7 +148,6 @@ contains
     end select
     
   end function im_core
-
   
   function ip_core(x,mu)
     integer(i4) :: ip_core(2)
