@@ -71,8 +71,8 @@ contains
        sgnm(1) = -1
 #if defined(PARALLEL)       
     endif
-    print*, this_image(),",", sgnp
-    print*, this_image(),",", sgnm
+    print"('# image: ',i1,',','sgnp = [',*(i3),']')", this_image(), sgnp
+    print"('# image: ',i1,',','sgnm = [',*(i3),']')", this_image(), sgnm
 #endif
     
 

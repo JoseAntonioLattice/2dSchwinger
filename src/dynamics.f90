@@ -30,6 +30,10 @@ module dynamics
   real(dp), parameter :: pi = acos(-1.0_dp)
   complex(dp), parameter :: i = (0.0_dp, 1.0_dp)
   complex(dp), dimension(2,2,2) :: sigma
+#ifdef PARALLEL
+    integer(i4), dimension(:), allocatable :: cores CDIM2
+#endif
+    
 
 contains
  
@@ -44,10 +48,7 @@ contains
     integer(i4), intent(in) :: nbeta, n_measurements
     real(dp), allocatable, dimension(:) :: beta_copy
     integer(i4) :: i_beta
-#ifdef PARALLEL
-    integer(i4), dimension(:), allocatable :: cores CDIM2
-#endif
-    
+
     Lx = L(1)
     Ly = L(2)
 #ifdef PARALLEL
@@ -206,7 +207,7 @@ contains
     chi%im = 0.0_dp
     call generate_pi(chi(:,1:Lx,1:Ly)%re); SYNC(chi)
     phi(:,1:Lx,1:Ly) = D(chi,U); SYNC(phi)
-    print*, phi(1,0,1), phi(1,Lx,1)[left]
+    !print*, phi(1,0,1), phi(1,Lx,1)[left]
     psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,U); SYNC(psi)
     S0 = sum(conjg(phi(:,1:Lx,1:Ly))*psi(:,1:Lx,1:Ly))
     
@@ -430,9 +431,9 @@ contains
     use parameters, only : Lx, Ly, m0
     complex(dp), dimension(DIM), intent(in) :: U, phi
     complex(dp), dimension(2,Lx,Ly) :: D
-    integer(i4) :: x1, x2, mu, alpha, beta
+    integer(i4) :: x1, x2, mu
     integer(i4), dimension(2) :: x, xm1, xm2,xp1, xp2
-      
+
     do x1 = 1, Lx
        do x2 = 1, Ly
           x = [x1,x2]
@@ -508,12 +509,51 @@ contains
   end function Dinv
 
   subroutine check_CG()
-    use parameters, only : Lx, Ly
-    complex(dp), dimension(DIM) :: U, phi,phi_p, psi,Dphi,chi,D1,D2
-    real(dp), dimension(2,Lx,Ly) :: r
+    use parameters, only : Lx, Ly, L
+    complex(dp), dimension(DIM3) ALLOC CODIM2 :: U, chi, phi
+    complex(dp), dimension(DIM3) ALLOC CODIM2 :: U_global, chi_global
+    integer :: a(2), ix, ex, iy, ey 
 
-    
-    
+    !call hot_start(U_global) 
+    !chi_global%im = 0.0_dp
+    !call generate_pi(chi_global%re)
+#ifdef PARALLEL
+    allocate(U(DIM)[*])
+    allocate(phi(DIM)[*])
+    allocate(chi(DIM)[*])
+    allocate(U_global(2,L(1),L(2))[*])
+    allocate(chi_global(2,L(1),L(2))[*])
+    if(this_image()==1) then
+#endif
+       open(unit = 69, file = "data/u.dat",status="old")
+       open(unit = 71, file = "data/chi.dat",status="old")
+       read(69,*) U_global
+       read(71,*) chi_global
+       print*,U_global(1,1,1)
+#ifdef PARALLEL
+    end if
+    a = get_index_array(this_image(),cores)
+    ix = L(1)/cores(1)*(a(1)-1)+1
+    ex = L(1)/cores(1)*a(1)
+    iy = L(2)/cores(2)*(a(2)-1)+1
+    ey = L(2)/cores(2)*a(2)
+    print*, this_image(), a, ix,ex,iy,ey
+    !sync all
+    U(:,1:Lx,1:Ly) = U_global(:,ix:ex,iy:ey)[1]; SYNC(U)
+    !print*,U(1,1,1)
+    chi(:,1:Lx,1:Ly) = chi_global(:,ix:ex,iy:ey)[1]; SYNC(chi)
+    if(this_image()==1)then
+       print*,U(1,1,1)
+#else
+    U = U_global
+    chi = chi_global
+#endif
+       phi(:,1:Lx,1:Ly) = D(chi,U); SYNC(phi)
+       print*, phi(1,1,1)
+#ifdef PARALLEL
+    end if
+    sync all
+#endif
   end subroutine check_CG
  
   function conjugate_gradient(phi,U) result(x) 
@@ -693,20 +733,20 @@ contains
     use parameters, only : Lx, Ly
     complex(dp), dimension(DIM) :: u[*]
 
-    sync all
     !Send edges
     u(:, Lx+1, 1:Ly)[left]  = u(:, 1 , 1:Ly)
     u(:, 0   , 1:Ly)[right] = u(:, Lx, 1:Ly)
     u(:, 1:Lx, Ly+1)[down]  = u(:, 1:Lx, 1)
     u(:, 1:Lx, 0   )[up]    = u(:, 1:Lx, Ly)
 
-    sync all
+
     !Send corners
     u(:, Lx+1, Ly+1 )[left_down]  = u(:, 1 , 1 )
     u(:, Lx+1, 0    )[left_up]    = u(:, 1 , Ly)
     u(:, 0   , Ly+1 )[right_down] = u(:, Lx, 1 )
     u(:, 0   , 0    )[right_up]   = u(:, Lx, Ly)
 
+    !sync images([left, right, up, down, left_up, left_down, right_up, right_down])
     sync all
   end subroutine sync_lattice
 #endif
