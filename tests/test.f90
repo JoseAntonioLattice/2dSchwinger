@@ -3,7 +3,7 @@
 #define CODIM [*]
 #define CODIM2 ,codimension[:]
 #define CODIM3 ,codimension[*]
-#define SYNC(U) call sync_lattice(U)
+#define SYNC(U) sync all; call sync_lattice(U)
 #else
 #define DIM 2,Lx,Ly
 #define CODIM
@@ -18,7 +18,9 @@ program test
   integer :: Lx, Ly
   integer, dimension(2), parameter :: L = [16,16]
   real(dp) :: m0 = 1000.0_dp
-  integer, allocatable, dimension(:) :: ip1, im1, ip2, im2, sgnp, sgnm  
+  integer, allocatable, dimension(:) :: ip1, im1, ip2, im2, sgnp, sgnm
+  complex(dp), dimension(:,:,:), allocatable CODIM2 :: U_global, chi_global
+  
 #ifdef PARALLEL
   integer :: cores(2)
   integer, allocatable, dimension(:) :: ip1_c, im1_c, ip2_c, im2_c
@@ -28,6 +30,7 @@ program test
   
   Lx = L(1)
   Ly = L(2)
+  
 #ifdef PARALLEL
   if(this_image() == 1) then
      print*, "Enter cores array: "
@@ -50,38 +53,55 @@ program test
   allocate(chi(DIM)CODIM)
   allocate(phi(DIM)CODIM)
   
+  ALLOCATE(U_global(2,L(1),L(2))CODIM)
+  ALLOCATE(chi_global(2,L(1),L(2))CODIM)
 
   call read_fields(U,chi)
-  !call check_Dirac(U,chi)
+  call check_Dirac(U,chi)
 
 contains
 
+  subroutine check_Dirac(U,chi)
+    complex(dp), dimension(DIM), intent(in) CODIM3 :: U, chi
+    !complex(dp), dimension(:,:,:), allocatable :: phi
+
+    !ALLOCATE(phi(2,Lx,Ly))
+    
+    phi(:,1:Lx,1:Ly) = D(U,chi)!; SYNC(phi)
+
+    print*,phi(1,2,2)
+    
+  end subroutine check_Dirac
+
+  
   subroutine read_fields(U,chi)
     complex(dp), dimension(DIM), intent(out) CODIM3 :: U, chi
-    complex(dp), dimension(:,:,:), allocatable CODIM2 :: U_global, chi_global
     integer :: ix, ex, iy, ey, a(2)
     
-    ALLOCATE(U_global(DIM)CODIM)
-    ALLOCATE(chi_global(DIM)CODIM)
 #ifdef PARALLEL
+    sync all
+    
     if(this_image() == 1) then
 #endif
        open(unit = 69, file = "u.dat"  ,status="old")
        open(unit = 71, file = "chi.dat",status="old")
        read(69,*) U_global
        read(71,*) chi_global
-       print*, U_global(1,1,1)
+       print*, U_global(1,1,1)      
 #ifdef PARALLEL
     end if
+    call co_broadcast(U_global,source_image=1)
+    call co_broadcast(chi_global,source_image=1)
     sync all
     a = get_index_array(this_image(),cores)
     ix = L(1)/cores(1)*(a(1)-1)+1
     ex = L(1)/cores(1)*a(1)
     iy = L(2)/cores(2)*(a(2)-1)+1
     ey = L(2)/cores(2)*a(2)
-    U(:,1:Lx,1:Ly) = U_global(:,ix:ex,iy:ey)[1]!; sync all; SYNC(U)
-    print*,U(1,1,1)
-    !chi(:,1:Lx,1:Ly) = chi_global(:,ix:ex,iy:ey)[1]!; sync all; SYNC(chi)
+     
+    U(:,1:Lx,1:Ly) = U_global(:,ix:ex,iy:ey); SYNC(U)
+    chi(:,1:Lx,1:Ly) = chi_global(:,ix:ex,iy:ey); SYNC(chi)
+    
 #else
     U = U_global
     chi = chi_global
@@ -140,6 +160,8 @@ contains
        sgnm(1) = -1
 #if defined(PARALLEL)       
     endif
+    print*, "image",this_image(),sgnp
+    print*, "image",this_image(),sgnm
 #endif
   end subroutine set_pbc
 
@@ -256,7 +278,6 @@ contains
 
 
   function get_index_array(idx,L) result(vector)
-
     integer, intent(in) :: idx
     integer :: d
     integer, intent(in) :: L(:)
@@ -289,11 +310,12 @@ contains
 
     do x1 = 1, Lx
        do x2 = 1, Ly
-          x = [x1,x2]
-          xm1 = im(x,1)
-          xm2 = im(x,2)
-          xp1 = ip(x,1)
-          xp2 = ip(x,2)
+                        ! Including periodic boundary conditions
+          x = [x1,x2]   ! x = (x_1,x_2) 
+          xm1 = im(x,1) ! (x_1 - 1,    x_2)
+          xm2 = im(x,2) ! (x_1,    x_2 - 1)
+          xp1 = ip(x,1) ! (x_1 + 1,    x_2)
+          xp2 = ip(x,2) ! (x1,     x_2 + 1)
           D(1,x(1),x(2)) = (m0+2.0_dp) * phi(1,x(1),x(2)) - 0.5*( &
                U(1,x(1),x(2))*sgnp(x1) *(phi(1,xp1(1),xp1(2)) -  phi(2,xp1(1),xp1(2))) + &
                U(2,x(1),x(2))          *(phi(1,xp2(1),xp2(2)) +i*phi(2,xp2(1),xp2(2))) + &
@@ -321,7 +343,7 @@ contains
     u(:, 1:Lx, Ly+1)[down]  = u(:, 1:Lx, 1)
     u(:, 1:Lx, 0   )[up]    = u(:, 1:Lx, Ly)
 
-
+    sync all
     !Send corners
     u(:, Lx+1, Ly+1 )[left_down]  = u(:, 1 , 1 )
     u(:, Lx+1, 0    )[left_up]    = u(:, 1 , Ly)
@@ -331,6 +353,14 @@ contains
     !sync images([left, right, up, down, left_up, left_down, right_up, right_down])
     sync all
   end subroutine sync_lattice
+
+  subroutine halo_anti_periodic(phi)
+    complex(dp), dimension(DIM) :: phi[*]
+
+    call sync_lattice(phi)
+    phi(:,Lx+1,:) = -phi(:,Lx+1,:)
+    phi(:,0,:)    = -phi(:,0,:)
+  end subroutine halo_anti_periodic
 #endif
 
   
