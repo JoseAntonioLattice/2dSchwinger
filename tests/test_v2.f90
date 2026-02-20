@@ -4,16 +4,19 @@
 #define CODIM2 ,codimension[:]
 #define CODIM3 ,codimension[*]
 #define ALLOC ,allocatable
+! SYNC(A): rellena los halos del coarray A usando host association.
+! Se expande inline para evitar pasar coarrays allocatables a dummies
+! no-allocatables (causa MPI_ERR_RMA_RANGE en accesos RMA remotos).
 #define SYNC(A) sync all; \
-  A(:,  Lx+1,1:Ly  ) = A(:,1    ,1:Ly)[right]; \
-  A(:,0     ,1:Ly  ) = A(:,   Lx,1:Ly)[left]; \
-  A(:,1:Lx  ,  Ly+1) = A(:, 1:Lx,1   )[up]; \
-  A(:,1:Lx  ,0     ) = A(:, 1:Lx,  Ly)[down]; \
+  A(:,  Lx+1,1:Ly) = A(:,    1,1:Ly)[right];  \
+  A(:,     0,1:Ly) = A(:,   Lx,1:Ly)[left];  \
+  A(:,1:Lx, Ly+1 ) = A(:,1:Lx,    1)[up];  \
+  A(:,1:Lx,     0) = A(:,1:Lx,   Ly)[down];  \
   sync all; \
-  A(:,Lx+1, Ly+1) = A(:, 1 , 1 )[right_up]; \
-  A(:,Lx+1, 0   ) = A(:, 1 , Ly)[right_down]; \
-  A(:,0   , Ly+1) = A(:, Lx, 1 )[left_up]; \
-  A(:,0   , 0   ) = A(:, Lx, Ly)[left_down]; \
+  A(:,Lx+1,Ly+1) = A(:, 1, 1)[right_up];  \
+  A(:,Lx+1,   0) = A(:, 1,Ly)[right_down];  \
+  A(:,   0,Ly+1) = A(:,Lx, 1)[left_up];  \
+  A(:,   0,   0) = A(:,Lx,Ly)[left_down]; \
   sync all
 #else
 #define DIM 2,Lx,Ly
@@ -21,7 +24,7 @@
 #define CODIM2
 #define CODIM3
 #define ALLOC
-#define SYNC(A)
+#define SYNC(U)
 #endif
 
 program test
@@ -70,12 +73,10 @@ program test
   ALLOCATE(chi_global(2,L(1),L(2))CODIM)
   allocate(pp(2,Lx,Ly)CODIM)
   call read_fields(U,chi)
-  SYNC(U)
-  SYNC(chi)
   !call check_Dirac(U,chi)
 
-  phi(:,1:Lx,1:Ly) = D(chi,U); SYNC(phi)
- 
+  phi(:,1:Lx,1:Ly) = D(chi,U)
+  SYNC(phi)
   pp = conjugate_gradient(phi,U)
   print*, "CG done!"
 #ifdef PARALLEL
@@ -136,8 +137,8 @@ contains
 
     print"('image: ',i0,',',x,'x in','[',i3,',',i3,']',3x,'y in','[',i3,',',i3,']')", this_image(), ix,ex,iy,ey
     
-      U(:,1:Lx,1:Ly) =   U_global(:,ix:ex,iy:ey)!; SYNC(U)
-    chi(:,1:Lx,1:Ly) = chi_global(:,ix:ex,iy:ey)!; SYNC(chi)
+      U(:,1:Lx,1:Ly) =   U_global(:,ix:ex,iy:ey); SYNC(U)
+    chi(:,1:Lx,1:Ly) = chi_global(:,ix:ex,iy:ey); SYNC(chi)
     
 #else
     U = U_global
@@ -173,8 +174,8 @@ contains
 
     left  = get_index(im_core(a,1),cores)
     right = get_index(ip_core(a,1),cores)
-    up    = get_index(ip_core(a,2),cores)
-    down  = get_index(im_core(a,2),cores)
+    up    = get_index(im_core(a,2),cores)
+    down  = get_index(ip_core(a,2),cores)
 
     left_down  = get_index(im_core(im_core(a,1),2),cores)
     left_up    = get_index(ip_core(im_core(a,1),2),cores)
@@ -397,8 +398,8 @@ contains
   end function Ddagger
 
   function conjugate_gradient(phi,U) result(x) 
-    integer, parameter :: max_iter = 15
-    real(dp), parameter :: tol = 1.0E-6_dp
+    integer, parameter :: max_iter = 10000
+    real(dp), parameter :: tol = 1.0E-10_dp
     complex(dp), dimension(DIM), intent(in) :: U, phi
     complex(dp), dimension(2,Lx,Ly) :: x
     complex(dp), dimension(2,Lx,Ly) :: r,Ap
@@ -421,7 +422,7 @@ contains
 #ifdef PARALLEL
   endif
 #endif
-    p(:,1:Lx,1:Ly) = r; SYNC(p)
+    p(:,1:Lx,1:Ly) = r; SYNC(p)   ! FIX: sincronizar halos antes del loop
 
     rr = real(sum(r*conjg(r)),dp)
     phi_norm2 = real(sum(phi(:,1:Lx,1:Ly)*conjg(phi(:,1:Lx,1:Ly))),dp)
@@ -432,11 +433,12 @@ contains
     if(this_image() == 1) then
 #endif
        !print*,"r", r
-       print*, 0, "rr", rr
+       print*, "rr", rr
 #ifdef PARALLEL
     end if
 #endif
     do k = 1, max_iter
+       ! p tiene halos sincronizados del paso anterior (o inicialización)
        Ddagp(:,1:Lx,1:Ly) = Ddagger(p,U); SYNC(Ddagp) 
        Ap = D(Ddagp,U)
        pAp_r = sum(real (p(:,1:Lx,1:Ly)*conjg(Ap)))
@@ -459,16 +461,20 @@ contains
           print*, k,"rr_new",rr_new,"phi_norm2",phi_norm2,"x", x(1,1,1)
 #ifdef PARALLEL
        end if
-       sync all
 #endif
           
-       if( rr_new < tol*phi_norm2 ) exit
+       if( rr_new*phi_norm2 < tol) exit   ! FIX: criterio de convergencia activo
+
        beta = rr_new/rr
-       p(:,1:Lx,1:Ly) = r + beta*p(:,1:Lx,1:Ly); SYNC(p)
+       p(:,1:Lx,1:Ly) = r + beta*p(:,1:Lx,1:Ly)
+       SYNC(p)   ! FIX: sincronizar halos al FINAL de cada iteración
        rr = rr_new
-   
     end do
+#ifdef PARALLEL
+    sync all
+#endif
   end function conjugate_gradient
+
 
 
   

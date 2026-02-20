@@ -13,7 +13,7 @@ module pbc
   integer, allocatable, dimension(:) :: ip1, im1, ip2, im2, sgnp, sgnm
   integer, allocatable, dimension(:) :: ip1_c, im1_c, ip2_c, im2_c
 
-  integer :: left, right, up, down, left_down, left_up, right_down, right_up, a(2)
+  integer :: left, right, arriba, down, left_down, left_up, right_down, right_up, a(2)
   
 contains
 
@@ -46,8 +46,8 @@ contains
 
     left  = get_index(im_core(a,1),cores)
     right = get_index(ip_core(a,1),cores)
-    up    = get_index(im_core(a,2),cores)
-    down  = get_index(ip_core(a,2),cores)
+    arriba= get_index(ip_core(a,2),cores)
+    down  = get_index(im_core(a,2),cores)
 
     left_down  = get_index(im_core(im_core(a,1),2),cores)
     left_up    = get_index(ip_core(im_core(a,1),2),cores)

@@ -23,8 +23,8 @@ program U1_2d
   call read_input
   call set_memory(u,L,beta,beta_i,beta_f,n_beta,plq_action,top_char,slb_top_char,pion_correlator,n_measurements)
   allocate(avr_top(Lx),err_top(Lx))
-  call check_CG()
-  call cold_start(u)
+ ! call check_CG()
+  call hot_start(u)
 
 IFPARALLEL
   open( unit = 10, file = 'data/data.dat', status = 'unknown')
@@ -32,7 +32,7 @@ IFPARALLEL
   open( unit = 30, file = 'data/topological_charge.dat', status = 'unknown')
 ENDIFPARALLEL
 
-go to 100
+!go to 100
   do i_b = 1, n_beta
      call initialization(u,plq_action,top_char,slb_top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
 
@@ -55,7 +55,7 @@ go to 100
      !flush(20)
      !flush(30)
   end do
-  100 print*, "Done!"
+ ! 100 print*, "Done!"
 contains
 
   function avr(x)

@@ -4,16 +4,32 @@
 #define CODIM2 ,codimension[:]
 #define CODIM3 ,codimension[*]
 #define ALLOC ,allocatable
+! SYNC(A): expande inline los halos del coarray A.
+! Convencion de variables en set_pbc:
+!   right = ip_core(a,1) = a1+1 en x  |  left = im_core(a,1) = a1-1 en x
+!   down  = ip_core(a,2) = a2+1 en y  |  up   = im_core(a,2) = a2-1 en y
+!   right_up   = (a1+1, a2+1)          |  right_down = (a1+1, a2-1)
+!   left_up    = (a1-1, a2+1)          |  left_down  = (a1-1, a2-1)
+! Halos de aristas:
+!   Lx+1 (fantasma +x) ← right (ip x) ✓
+!   0    (fantasma -x) ← left  (im x) ✓
+!   Ly+1 (fantasma +y) ← down  (ip y, a2+1) ← CORREGIDO (era 'up')
+!   0    (fantasma -y) ← up    (im y, a2-1) ← CORREGIDO (era 'down')
+! Halos de esquinas (usan la convencion de los nombres de esquina, NO la de aristas):
+!   (Lx+1,Ly+1) ← right_up   = (a1+1,a2+1) ← REVERTIDO al original
+!   (Lx+1,0)    ← right_down = (a1+1,a2-1) ← REVERTIDO al original
+!   (0,Ly+1)    ← left_up    = (a1-1,a2+1) ← REVERTIDO al original
+!   (0,0)       ← left_down  = (a1-1,a2-1) ← REVERTIDO al original
 #define SYNC(A) sync all; \
-  A(:,  Lx+1,1:Ly  ) = A(:,1    ,1:Ly)[right]; \
-  A(:,0     ,1:Ly  ) = A(:,   Lx,1:Ly)[left]; \
-  A(:,1:Lx  ,  Ly+1) = A(:, 1:Lx,1   )[up]; \
-  A(:,1:Lx  ,0     ) = A(:, 1:Lx,  Ly)[down]; \
+  A(:,  Lx+1,1:Ly) = A(:,    1,1:Ly)[right]; \
+  A(:,     0,1:Ly) = A(:,   Lx,1:Ly)[left]; \
+  A(:,1:Lx, Ly+1 ) = A(:,1:Lx,    1)[down]; \
+  A(:,1:Lx,     0) = A(:,1:Lx,   Ly)[up]; \
   sync all; \
-  A(:,Lx+1, Ly+1) = A(:, 1 , 1 )[right_up]; \
-  A(:,Lx+1, 0   ) = A(:, 1 , Ly)[right_down]; \
-  A(:,0   , Ly+1) = A(:, Lx, 1 )[left_up]; \
-  A(:,0   , 0   ) = A(:, Lx, Ly)[left_down]; \
+  A(:,Lx+1,Ly+1) = A(:, 1, 1)[right_up]; \
+  A(:,Lx+1,   0) = A(:, 1,Ly)[right_down]; \
+  A(:,   0,Ly+1) = A(:,Lx, 1)[left_up]; \
+  A(:,   0,   0) = A(:,Lx,Ly)[left_down]; \
   sync all
 #else
 #define DIM 2,Lx,Ly
@@ -21,7 +37,7 @@
 #define CODIM2
 #define CODIM3
 #define ALLOC
-#define SYNC(A)
+#define SYNC(U)
 #endif
 
 program test
@@ -68,7 +84,7 @@ program test
   
   ALLOCATE(U_global(2,L(1),L(2))CODIM)
   ALLOCATE(chi_global(2,L(1),L(2))CODIM)
-  allocate(pp(2,Lx,Ly)CODIM)
+  allocate(pp(DIM)CODIM)  ! FIX: pp necesita halos para SYNC(pp)
   call read_fields(U,chi)
   SYNC(U)
   SYNC(chi)
@@ -76,7 +92,7 @@ program test
 
   phi(:,1:Lx,1:Ly) = D(chi,U); SYNC(phi)
  
-  pp = conjugate_gradient(phi,U)
+  pp(:,1:Lx,1:Ly) = conjugate_gradient(phi,U)  ! FIX: asignar solo interior
   print*, "CG done!"
 #ifdef PARALLEL
   sync all
@@ -173,8 +189,8 @@ contains
 
     left  = get_index(im_core(a,1),cores)
     right = get_index(ip_core(a,1),cores)
-    up    = get_index(ip_core(a,2),cores)
-    down  = get_index(im_core(a,2),cores)
+    up    = get_index(im_core(a,2),cores)
+    down  = get_index(ip_core(a,2),cores)
 
     left_down  = get_index(im_core(im_core(a,1),2),cores)
     left_up    = get_index(ip_core(im_core(a,1),2),cores)
@@ -421,7 +437,7 @@ contains
 #ifdef PARALLEL
   endif
 #endif
-    p(:,1:Lx,1:Ly) = r; SYNC(p)
+    p(:,1:Lx,1:Ly) = r; SYNC(p)   ! FIX: sincronizar halos de p antes del loop
 
     rr = real(sum(r*conjg(r)),dp)
     phi_norm2 = real(sum(phi(:,1:Lx,1:Ly)*conjg(phi(:,1:Lx,1:Ly))),dp)
@@ -432,12 +448,13 @@ contains
     if(this_image() == 1) then
 #endif
        !print*,"r", r
-       print*, 0, "rr", rr
+       print*, "rr", rr
 #ifdef PARALLEL
     end if
 #endif
     do k = 1, max_iter
-       Ddagp(:,1:Lx,1:Ly) = Ddagger(p,U); SYNC(Ddagp) 
+       ! p tiene halos sincronizados del paso anterior (o de la inicializacion)
+       Ddagp(:,1:Lx,1:Ly) = Ddagger(p,U); SYNC(Ddagp)
        Ap = D(Ddagp,U)
        pAp_r = sum(real (p(:,1:Lx,1:Ly)*conjg(Ap)))
        pAp_i = sum(aimag(p(:,1:Lx,1:Ly)*conjg(Ap)))
@@ -447,7 +464,7 @@ contains
 #endif
        pAp = cmplx(pAp_r,pAp_i)
        alpha = rr/pAp
-       
+
        x = x + alpha*p(:,1:Lx,1:Ly)
        r = r - alpha*Ap
 
@@ -459,15 +476,18 @@ contains
           print*, k,"rr_new",rr_new,"phi_norm2",phi_norm2,"x", x(1,1,1)
 #ifdef PARALLEL
        end if
-       sync all
 #endif
-          
-       if( rr_new < tol*phi_norm2 ) exit
+
+       if( rr_new*phi_norm2 < tol ) exit   ! FIX: criterio de convergencia activo
+
        beta = rr_new/rr
-       p(:,1:Lx,1:Ly) = r + beta*p(:,1:Lx,1:Ly); SYNC(p)
+       p(:,1:Lx,1:Ly) = r + beta*p(:,1:Lx,1:Ly)
+       SYNC(p)   ! FIX: sincronizar halos de p al FINAL de cada iteracion
        rr = rr_new
-   
     end do
+#ifdef PARALLEL
+    sync all
+#endif
   end function conjugate_gradient
 
 
