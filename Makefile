@@ -22,7 +22,7 @@ $(BIN)/%.o: $(SRC)/%.f90
 
 run:
 #	@echo "input/input_parameters.nml" | time $(BIN)/$(TARGET)
-	{ echo "input/input_parameters.nml"; echo 2 1; } | cafrun -n 2 $(BIN)/$(TARGET)
+	{ echo "input/input_parameters.nml"; echo 2 2; } | cafrun -n 4 $(BIN)/$(TARGET)
 clean:
 	rm -f $(OBJECT) $(BIN)/$(TARGET)
 

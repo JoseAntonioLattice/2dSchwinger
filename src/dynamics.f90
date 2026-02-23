@@ -43,7 +43,7 @@ module dynamics
 #ifdef PARALLEL
     integer(i4), dimension(:), allocatable :: cores CDIM2
 #endif
-    complex(dp), dimension(DIM3) CODIM2 ALLOC :: Up, psi, chi, phi, cg_p, cg_Ddagp
+    complex(dp), allocatable, dimension(:,:,:) CODIM2 :: Up, psi, chi, phi, cg_p, cg_Ddagp
     real(dp) ALLOC CODIM2  :: DeltaH
 contains
  
@@ -62,6 +62,7 @@ contains
     Lx = L(1)
     Ly = L(2)
 #ifdef PARALLEL
+    allocate(DeltaH CDIM)
     allocate(cores(2)[*])
     if(this_image() == 1) then
        print*, "Enter cores arrays"
@@ -79,16 +80,15 @@ contains
 #else
     call set_pbc([Lx,Ly])
 #endif
-
-#ifdef PARALLEL
+    allocate(Up(DIM)CDIM)
+    allocate(psi(DIM)CDIM)
+    allocate(phi(DIM)CDIM)
+    allocate(cg_p(DIM)CDIM)
+    allocate(cg_Ddagp(DIM)CDIM)
+    allocate(chi(DIM)CDIM)
     
-    allocate(Up(DIM)[*])
-    allocate(psi(DIM)[*])
-    allocate(phi(DIM)[*])
-    allocate(cg_p(DIM)[*])
-    allocate(cg_Ddagp(DIM)[*])
-    allocate(chi(DIM)[*])
-    allocate(DeltaH[*])
+#ifdef PARALLEL
+   
     !print*, this_image(), left, right, up, down, left_down, left_up, right_down, right_up
     print*, this_image(), ",", im([1,1],1), im([1,1],2)
     print*, this_image(), ",", ip([Lx,Ly],1), ip([Lx,Ly],2)
