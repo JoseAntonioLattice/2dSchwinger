@@ -3,7 +3,7 @@
 #define ENDIFPARALLEL endif
 #elif !defined(PARALLEL)
 #define IFPARALLEL 
-#define ENDIFPARALLEL 
+#define ENDIFPARALLEL
 #endif
 
 program U1_2d
@@ -13,11 +13,10 @@ program U1_2d
   use parameters
   use arrays
   use dynamics
-  
+  use number2string
   implicit none
 
-  integer :: i_b, j
-
+  integer :: i_b, j, k
   call random_init(.false.,.true.)
   
   call read_input
@@ -32,30 +31,18 @@ IFPARALLEL
   open( unit = 30, file = 'data/topological_charge.dat', status = 'unknown')
 ENDIFPARALLEL
 
-!go to 100
-  do i_b = 1, n_beta
-     call initialization(u,plq_action,top_char,slb_top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
 
-     IFPARALLEL
-     print*, beta(i_b), avr(plq_action)/product(L), std_Err(plq_action)/product(L), avr(top_char),std_err(top_char)
-     ENDIFPARALLEL
-     !do j = 1, Lx
-     !   write(20,*) j-1,avr(pion_correlator(j,:)),std_err(pion_correlator(j,:))
-     !   write(30,*) j, avr(slb_top_char(j,:)), std_err(slb_top_char(j,:))
-     !end do
-     !write(20,*) Lx,avr(pion_correlator(1,:)),std_err(pion_correlator(1,:))
-     !write(20,"(2/)")
-     !write(30,"(2/)")
+   !do i_b = 1, n_beta
+   !   call initialization(u,plq_action,top_char,slb_top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
+  !end do
 
-     IFPARALLEL
-     write(10,*) beta(i_b), avr(plq_action)/product(L), std_Err(plq_action)/product(L), avr(top_char),std_err(top_char),&
-          avr(top_char**2)/(Lx*Ly),std_err(top_char**2)/(Lx*Ly) 
-     flush(10)
-     ENDIFPARALLEL
-     !flush(20)
-     !flush(30)
-  end do
- ! 100 print*, "Done!"
+   do i_b = 1, n_beta
+      call hola(U,beta(i_b),plq_action)
+IFPARALLEL
+      print*, beta(i_b), avr(plq_action)/product(L). std_Err(plq_action)/product(L)
+ENDIFPARALLEL
+   end do
+
 contains
 
   function avr(x)

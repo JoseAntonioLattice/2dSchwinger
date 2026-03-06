@@ -16,8 +16,7 @@
   A(:,Lx+1, Ly+1) = A(:, 1 , 1 )[right_up]; \
   A(:,Lx+1, 0   ) = A(:, 1 , Ly)[right_down]; \
   A(:,0   , Ly+1) = A(:, Lx, 1 )[left_up]; \
-  A(:,0   , 0   ) = A(:, Lx, Ly)[left_down]; \
-  sync all
+  A(:,0   , 0   ) = A(:, Lx, Ly)[left_down]
 #else
 #define DIM 2,Lx,Ly
 #define DIM3 2,Lx,Ly
@@ -41,10 +40,10 @@ module dynamics
   complex(dp), parameter :: i = (0.0_dp, 1.0_dp)
   complex(dp), dimension(2,2,2) :: sigma
 #ifdef PARALLEL
-    integer(i4), dimension(:), allocatable :: cores CDIM2
+    integer(i4),  dimension(2) :: cores 
 #endif
     complex(dp), allocatable, dimension(:,:,:) CODIM2 :: Up, psi, chi, phi, cg_p, cg_Ddagp
-    real(dp) ALLOC CODIM2  :: DeltaH
+    
 contains
  
   subroutine set_memory(u,L,beta,betai,betaf,nbeta, plqaction,top_char,slb_top_char,pion_correlator,n_measurements)
@@ -62,8 +61,7 @@ contains
     Lx = L(1)
     Ly = L(2)
 #ifdef PARALLEL
-    allocate(DeltaH CDIM)
-    allocate(cores(2)[*])
+
     if(this_image() == 1) then
        print*, "Enter cores arrays"
        read(*,*) cores
@@ -128,12 +126,9 @@ contains
        do i_skip = 1, n_skip
           call sweeps(u,beta)
        end do
-             
-       plqaction(i_sweeps) = action(u)
-       !print*, plqaction(i_sweeps)
+       call save_configuration(U,beta)       
 #ifdef PARALLEL
        sync all
-       call co_sum(plqaction(i_sweeps),result_image = 1)
 #endif
     end do
     
@@ -184,10 +179,9 @@ contains
     complex(dp), intent(inout) CODIM :: U(DIM)
     real(dp), intent(in) :: beta
     real(dp), dimension(2,Lx,Ly) :: Forces, p, pnew
-    
     integer(i4) :: k, x, y, mu
     real(dp) :: r, deltaT, DS, S0
-    
+    real(dp) :: DeltaH
     logical :: condition    
 
     
@@ -202,6 +196,7 @@ contains
     psi(:,1:Lx,1:Ly) = conjugate_gradient(phi,U)
     SYNC(psi)
     S0 = sum(conjg(phi(:,1:Lx,1:Ly))*psi(:,1:Lx,1:Ly))
+    
     
     !! k = 0
     !U_0
@@ -370,19 +365,14 @@ contains
   subroutine generate_pi(p)
     use parameters, only : Lx, Ly
     real(dp), intent(out), dimension(2,Lx,Ly) :: p
-    real(dp) :: u1, u2, u3, u4
+    real(dp), dimension(2,Lx,Ly) :: u1, u2
     integer(i4) :: x, y
 
-    do x = 1, Lx
-       do y = 1, Ly
-          call random_number(u1)
-          call random_number(u2)
-          call random_number(u3)
-          call random_number(u4)
-          p(1,x,y) = sqrt(-2*log(1.0_dp-u1))*cos(2*pi*u2) 
-          p(2,x,y) = sqrt(-2*log(1.0_dp-u3))*cos(2*pi*u4)
-       end do
-    end do
+    call random_number(u1)
+    call random_number(u2)
+    
+    p = sqrt(-2*log(1.0_dp-u1))*cos(2*pi*u2) 
+   
   end subroutine generate_pi
 
   subroutine compute_forces(forces,beta,u,psi,chi)
@@ -614,8 +604,6 @@ contains
           action2 = action2 + beta*(1.0_dp - real(plaquette(u,[x,y])))
        end do
     end do
-
-    !action2 = beta*(L**2 - action2)
     
   end function action2
 
@@ -626,8 +614,8 @@ contains
     integer(i4) :: i, j
     complex(dp) :: plq
     
-    do i = 1, size(u(1,:,1))
-       do j = 1, size(u(1,1,:))
+    do i = 1, Lx
+       do j = 1, Ly
           plq = plaquette(u,[i,j])
           top(i,j) = atan2(plq%im,plq%re)!/(2*pi)
        end do
@@ -645,6 +633,125 @@ contains
     slab_top_char = (sum(top(1:ix,:))/(2*pi))**2!*sum(top(ix+1:,:))
     
   end function slab_top_char
+
+  subroutine wilson_flow(U,beta)
+    use parameters, only : Lx, Ly
+    complex(dp), intent(inout) :: U(DIM)
+    real(dp), intent(in) :: beta
+    real(dp), parameter :: epsilon = 1.0E-3_dp
+    integer, parameter :: Nt = 100
+    integer :: x,y,t
+    
+    do t = 1, Nt
+       do x = 1, Lx
+          do y = 1, Ly
+             Up(1,x,y) = exp(-epsilon*beta*real(U(1,x,y)*conjg(staples(U,[x,y],1))))*U(1,x,y)
+             Up(2,x,y) = exp(-epsilon*beta*real(U(2,x,y)*conjg(staples(U,[x,y],2))))*U(2,x,y)
+          end do
+       end do
+       SYNC(Up)
+       U = Up
+    end do
+
+  end subroutine wilson_flow
+
+  subroutine save_configuration(U,beta)
+    use number2string
+    use check_files_directories 
+    use parameters, only : L, Lx, Ly
+    complex(dp), intent(in) :: U(DIM)
+    real(dp), intent(in) :: beta
+    integer(i4) :: un, ix,ex, iy, ey, a(2)
+    complex(dp), allocatable :: U_global(:,:,:)CDIM2
+    character(:), allocatable :: path,file_name
+    character(100), dimension(3) :: directory_array
+
+#ifndef PARALLEL
+    allocate(U_global(2,L(1),L(2)))
+    U_global = U
+#else   
+    allocate(U_global(2,L(1),L(2))[*])
+    
+    a = get_index_array(this_image(),cores)
+    ix = L(1)/cores(1)*(a(1)-1)+1
+    ex = L(1)/cores(1)*a(1)
+    iy = L(2)/cores(2)*(a(2)-1)+1
+    ey = L(2)/cores(2)*a(2)
+    sync all
+    U_global(:,ix:ex,iy:ey)[1] = U(:,1:Lx,1:Ly)
+    sync all
+    if( this_image()==1 ) then
+#endif
+       directory_array = [character(100):: "data","configurations","beta="//trim(real2str(beta,1,4))]
+    
+       call check_directory(directory_array,path)
+       call numbered_files(path,"U",".bin",file_name)
+       open(newunit = un, file = file_name, access = "sequential", form = "unformatted")
+       !open(newunit = un, file = "U"//int2str(n)//".dat")
+       write(un) U_global
+       close(un)
+       deallocate(U_global)
+#ifdef PARALLEL
+    endif
+    sync all
+#endif
+    
+  end subroutine save_configuration
+
+  subroutine read_configuration(U,filename)
+    use number2string
+    use parameters, only : L, Lx, Ly
+    complex(dp), intent(out) :: U(DIM)
+    character(*), intent(in) :: filename 
+    integer(i4) :: un, ix,ex, iy, ey, a(2)
+    complex(dp), allocatable :: U_global(:,:,:)CDIM2
+
+    allocate(U_global(2,L(1),L(2))CDIM)
+#ifdef PARALLEL   
+    a = get_index_array(this_image(),cores)
+    ix = L(1)/cores(1)*(a(1)-1)+1
+    ex = L(1)/cores(1)*a(1)
+    iy = L(2)/cores(2)*(a(2)-1)+1
+    ey = L(2)/cores(2)*a(2)
+    
+    if( this_image()==1 ) then
+#endif
+       open(newunit = un, file = filename, access = "sequential", form = "unformatted")  
+       read(un) U_global
+       close(un)
+       
+#ifdef PARALLEL
+    endif
+    call co_broadcast(U_global,source_image=1)
+    U(:,1:Lx,1:Ly) = U_global(:,ix:ex,iy:ey)
+#else
+    U = U_global
+#endif
+    deallocate(U_global)
+  end subroutine read_configuration
+
+
+  subroutine hola(U,beta,plq_action)
+    use parameters, only : Lx, Ly
+    use number2string
+    complex(dp), intent(out) :: U(DIM)CDIM
+    real(dp), intent(in) :: beta
+    real(dp), dimension(:) :: plq_action
+    integer :: k    
+    character(:), allocatable :: filename
+    
+    do k = 1, 1!000
+       filename = "data/configurations/beta="//trim(real2str(beta,1,4))//"/U_"//int2str(k)//".bin"
+       call read_configuration(U,filename)
+       SYNC(U)
+       plq_action(k) = action(U)
+#ifdef PARALLEL         
+       call co_sum(plq_action(k))
+#endif
+       call wilson_flow(U,beta(i_b))
+    end do
+    
+  end subroutine hola
 
   
 end module dynamics
