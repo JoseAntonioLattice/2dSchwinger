@@ -9,7 +9,7 @@ SOURCE = indices.f90 statistics.f90 pbc.f90 arrays.f90 parameters.f90 dynamics.f
 OBJECT = $(patsubst %, $(BIN)/%, $(SOURCE:.f90=.o ) )
 
 #FFLAGS = -Wall -Wextra -fcheck=all -O0 -J$(BIN) -I$(BIN) -cpp
-FFLAGS = -ffree-line-length-512 -O3 -J$(BIN) -I$(BIN) -cpp -DPARALLEL 
+FFLAGS = -ffree-line-length-512 -O3 -J$(BIN) -I$(BIN) -cpp #-DPARALLEL 
 
 
 

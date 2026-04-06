@@ -740,27 +740,27 @@ contains
   end subroutine read_configuration
 
 
-  subroutine hola(U,beta,plq_action)
-    use parameters, only : Lx, Ly
-    use number2string
-    complex(dp), intent(out) :: U(DIM)CDIM
-    real(dp), intent(in) :: beta
-    real(dp), dimension(:) :: plq_action
-    integer :: k    
-    character(:), allocatable :: filename
-    
-    do k = 1, 1!000
-       filename = "data/configurations/beta="//trim(real2str(beta,1,4))//"/U_"//int2str(k)//".bin"
-       call read_configuration(U,filename)
-       SYNC(U)
-       plq_action(k) = action(U)
-#ifdef PARALLEL         
-       call co_sum(plq_action(k))
-#endif
-       call wilson_flow(U,beta(i_b))
-    end do
-    
-  end subroutine hola
+!!$  subroutine hola(U,beta,plq_action)
+!!$    use parameters, only : Lx, Ly
+!!$    use number2string
+!!$    complex(dp), intent(out) :: U(DIM)CDIM
+!!$    real(dp), intent(in) :: beta
+!!$    real(dp), dimension(:) :: plq_action
+!!$    integer :: k    
+!!$    character(:), allocatable :: filename
+!!$    
+!!$    do k = 1, 1!000
+!!$       filename = "data/configurations/beta="//trim(real2str(beta,1,4))//"/U_"//int2str(k)//".bin"
+!!$       call read_configuration(U,filename)
+!!$       SYNC(U)
+!!$       plq_action(k) = action(U)
+!!$#ifdef PARALLEL         
+!!$       call co_sum(plq_action(k))
+!!$#endif
+!!$       call wilson_flow(U,beta(i_b))
+!!$    end do
+!!$    
+!!$  end subroutine hola
 
   
   function correlation_polyakov(U) result(corr_poly)
