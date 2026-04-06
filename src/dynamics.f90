@@ -49,6 +49,7 @@ contains
  
   subroutine set_memory(u,L,beta,betai,betaf,nbeta, plqaction,top_char,slb_top_char,pion_correlator,n_measurements)
     use parameters, only : Lx, Ly
+    use arrays, only : poly_corr
     complex(dp), dimension(:,:,:), allocatable CODIM2 :: u
     integer(i4), intent(in) :: L(2)
     real(dp), allocatable, dimension(:) :: beta
@@ -109,10 +110,12 @@ contains
     allocate(top_char(N_measurements)CDIM)
     allocate(slb_top_char(L(1),n_measurements)CDIM)
     allocate(pion_correlator(L(1),n_measurements)CDIM)
+    allocate(poly_corr(0:L(1)/2-1,n_measurements)CDIM)
   end subroutine set_memory
   
   subroutine initialization(u,plqaction,top_char,slb_top_char,pion_correlator,beta,N_thermalization,N_measurements, N_skip)
     use parameters, only : L, Lx, Ly
+    use arrays, only : poly_corr
     complex(dp), dimension(DIM) CODIM, intent(inout) :: u
     real(dp), dimension(:) CODIM, intent(out) :: plqaction, top_char
     integer(i4), intent(in) :: N_thermalization, N_measurements, N_skip
@@ -130,6 +133,7 @@ contains
        end do
              
        plqaction(i_sweeps) = action(u)
+       poly_corr(0:,i_sweeps) = correlation_polyakov(u)
        !print*, plqaction(i_sweeps)
 #ifdef PARALLEL
        sync all
@@ -647,4 +651,26 @@ contains
   end function slab_top_char
 
   
+  function correlation_polyakov(U) result(corr_poly)
+    use parameters, only : L
+    complex(dp), intent(in) :: U(2,L(1),L(2))
+    integer(i4) :: x, r, t
+    complex(dp), dimension(0:L(1)/2-1) :: corr_poly
+    complex(dp), dimension(L(1)) :: polyakov_loop
+
+    do x = 1, L(1)
+       polyakov_loop(x) = product(U(2,x,:))
+    end do
+
+    corr_poly = 0.0_dp
+    do t = 0, L(1)/2 - 1
+       do x = 1, L(1)
+          r = mod(x-1+t,L(1))+1
+          corr_poly(t) = corr_poly(t)+polyakov_loop(x)*conjg(polyakov_loop(r))
+       end do
+    end do
+    corr_poly = corr_poly/L(1)
+  end function correlation_polyakov
+
+
 end module dynamics

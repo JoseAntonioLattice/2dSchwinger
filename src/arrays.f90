@@ -15,6 +15,8 @@ module arrays
   real(dp), allocatable, dimension(:) :: avr_top, err_top, avr_pion, err_pion
   real(dp), allocatable, dimension(:,:) CODIM :: slb_top_char
   real(dp), allocatable, dimension(:,:) CODIM :: pion_correlator
+  complex(dp), allocatable, dimension(:,:) :: poly_corr
+  
   real(dp) :: avr_action,err_action
   integer(i4) :: bins
   

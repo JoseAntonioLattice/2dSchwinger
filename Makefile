@@ -1,4 +1,4 @@
-FC = caf
+FC = gfortran
 TARGET = 2dU1.exe
 
 SRC = src
@@ -9,7 +9,7 @@ SOURCE = indices.f90 statistics.f90 pbc.f90 arrays.f90 parameters.f90 dynamics.f
 OBJECT = $(patsubst %, $(BIN)/%, $(SOURCE:.f90=.o ) )
 
 #FFLAGS = -Wall -Wextra -fcheck=all -O0 -J$(BIN) -I$(BIN) -cpp
-FFLAGS = -ffree-line-length-512 -O3 -J$(BIN) -I$(BIN) -cpp -DPARALLEL
+FFLAGS = -ffree-line-length-512 -O3 -J$(BIN) -I$(BIN) -cpp #-DPARALLEL
 
 
 $(BIN)/$(TARGET): $(OBJECT)
@@ -21,8 +21,8 @@ $(BIN)/%.o: $(SRC)/%.f90
 .PHONY: help run clean
 
 run:
-#	@echo "input/input_parameters.nml" | time $(BIN)/$(TARGET)
-	{ echo "input/input_parameters.nml"; echo 2 2; } | cafrun -n 4 $(BIN)/$(TARGET)
+	@echo "input/input_parameters.nml" | time $(BIN)/$(TARGET)
+#	{ echo "input/input_parameters.nml"; echo 2 2; } | cafrun -n 4 $(BIN)/$(TARGET)
 clean:
 	rm -f $(OBJECT) $(BIN)/$(TARGET)
 
