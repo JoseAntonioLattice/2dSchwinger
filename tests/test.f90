@@ -70,6 +70,8 @@ program test
   ALLOCATE(chi_global(2,L(1),L(2))CODIM)
   allocate(pp(2,Lx,Ly)CODIM)
   call read_fields(U,chi)
+  sync all
+  call save_configuration(U,1.0_dp,1)
   SYNC(U)
   SYNC(chi)
   !call check_Dirac(U,chi)
@@ -469,6 +471,43 @@ contains
    
     end do
   end function conjugate_gradient
+
+  subroutine save_configuration(U,beta,n)
+    use number2string
+    !use parameters, only : Lx, Ly, L
+    complex(dp), intent(in) :: U(DIM)
+    real(dp), intent(in) :: beta
+    integer(i4), intent(in) :: n
+    integer(i4) :: un, ix,ex, iy, ey, a(2)
+    complex(dp), allocatable :: U_global(:,:,:)[:]
+    
+    
+#ifndef PARALLEL
+    allocate(U_global(2,L(1),L(2)))
+    U_global = U
+#else
+   
+    allocate(U_global(2,L(1),L(2))[*])
+  
+    a = get_index_array(this_image(),cores)
+    ix = L(1)/cores(1)*(a(1)-1)+1
+    ex = L(1)/cores(1)*a(1)
+    iy = L(2)/cores(2)*(a(2)-1)+1
+    ey = L(2)/cores(2)*a(2)
+    sync all
+    U_global(:,ix:ex,iy:ey)[1] = U(:,1:Lx,1:Ly)
+    sync all
+    if( this_image()==1 ) then
+#endif
+       !open(newunit = un, file = "U"//int2str(n)//".bin", access = "sequential", form = "unformatted")
+       open(newunit = un, file = "U"//int2str(n)//".dat")
+       write(un,*) U_global
+       close(un)
+#ifdef PARALLEL
+    endif
+#endif
+    
+  end subroutine save_configuration
 
 
   
