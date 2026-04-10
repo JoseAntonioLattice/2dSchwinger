@@ -94,11 +94,14 @@ contains
 #endif
     allocate(u(DIM)CDIM)
     allocate(beta(nbeta))
-    
-    do i_beta = 1, nbeta 
-       beta(i_beta) = betai + (betaf - betai)/(nbeta-1)*(i_beta-1)
-    end do
-   
+
+    if(nbeta/=1)then
+       do i_beta = 1, nbeta 
+          beta(i_beta) = betai + (betaf - betai)/(nbeta-1)*(i_beta-1)
+       end do
+    else
+       beta(1) = betai
+    end if
     sigma(1,:,:) = reshape([0.0_dp,1.0_dp,1.0_dp,0.0_dp],[2,2])
     sigma(2,:,:) = reshape([(0.0_dp,0.0_dp),i,-i,(0.0_dp,0.0_dp)],[2,2])
 
@@ -112,7 +115,7 @@ contains
   end subroutine set_memory
   
   subroutine initialization(u,plqaction,top_char,slb_top_char,pion_correlator,beta,N_thermalization,N_measurements, N_skip)
-    use parameters, only : L, Lx, Ly
+    use parameters, only : L, Lx, Ly, save_config
     use arrays, only : poly_corr
     complex(dp), dimension(DIM) CODIM, intent(inout) :: u
     real(dp), dimension(:) CODIM, intent(out) :: plqaction, top_char
@@ -134,7 +137,7 @@ contains
        poly_corr(0:,i_sweeps) = correlation_polyakov(u)
        !print*, plqaction(i_sweeps)
 
-       !call save_configuration(U,beta)       
+       call save_configuration(U,beta)       
 
 #ifdef PARALLEL
        sync all
@@ -667,13 +670,13 @@ contains
   subroutine save_configuration(U,beta)
     use number2string
     use check_files_directories 
-    use parameters, only : L, Lx, Ly
+    use parameters, only : L, Lx, Ly,m0
     complex(dp), intent(in) :: U(DIM)
     real(dp), intent(in) :: beta
     integer(i4) :: un, ix,ex, iy, ey, a(2)
     complex(dp), allocatable :: U_global(:,:,:)CDIM2
     character(:), allocatable :: path,file_name
-    character(100), dimension(3) :: directory_array
+    character(100), dimension(6) :: directory_array
 
 #ifndef PARALLEL
     allocate(U_global(2,L(1),L(2)))
@@ -691,7 +694,8 @@ contains
     sync all
     if( this_image()==1 ) then
 #endif
-       directory_array = [character(100):: "data","configurations","beta="//trim(real2str(beta,1,4))]
+       directory_array = [character(100):: "data","configurations", "m0="//real2str(m0,nint(log10(abs(m0)))+1,4),&
+            "Lx="//trim(int2str(Lx)),"Lt="//trim(int2str(Ly)),"beta="//trim(real2str(beta,1,4))]
     
        call check_directory(directory_array,path)
        call numbered_files(path,"U",".bin",file_name)
