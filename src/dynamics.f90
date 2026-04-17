@@ -7,6 +7,7 @@ module dynamics
   use constants, only : i, pi
   use observables
   use configurations
+  use number2string
   implicit none
   complex(dp), dimension(2,2,2) :: sigma
 #ifdef PARALLEL
@@ -99,16 +100,42 @@ contains
        do i_skip = 1, n_skip
           call sweeps(u,beta)
        end do
-             
-       plqaction(i_sweeps) = action(u)
-       poly_corr(0:,i_sweeps) = correlation_polyakov(u)
-       call save_configuration(U,beta)       
+       !plqaction(i_sweeps) = action(u)
+       !poly_corr(0:,i_sweeps) = correlation_polyakov(u)
+       if(save_config) call save_configuration(U,beta)       
 #ifdef PARALLEL
        sync all
 #endif
     end do
     
   end subroutine initialization
+
+
+  subroutine read_configs(U,beta)
+    use parameters
+    use arrays, only : plq_action, poly_corr
+    complex(dp), dimension(DIM) CODIM, intent(inout) :: U
+    real(dp), intent(in) :: beta
+    integer :: k
+    logical :: condition
+    character(:), allocatable :: filename
+    
+    k = 0
+    do 
+       k = k + 1
+       filename = "data/configurations/m0="//real2str(m0,nint(log(abs(m0))+1),4)//"/Lx="//int2str(L(1))// &
+            "/Lt="//int2str(L(2))//"/beta="//real2str(beta,nint(log(abs(beta))+1),4)//"/U_"//int2str(k)//".bin"
+       inquire(file = filename, exist = condition)
+       if(condition)then
+          call read_configuration(U,filename)
+       else
+          exit
+       end if
+       plq_action(k) = action(u)
+       poly_corr(0:,k) = correlation_polyakov(u)
+    end do
+    
+  end subroutine read_configs
   
   subroutine thermalization(u,N_thermalization,beta)
     use parameters, only : Lx, Ly

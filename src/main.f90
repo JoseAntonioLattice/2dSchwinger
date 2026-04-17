@@ -24,27 +24,32 @@ program U1_2d
   allocate(avr_top(Lx),err_top(Lx))
   call hot_start(u)
 
-IFPARALLEL
+  IFPARALLEL
   open( unit = 10, file = 'data/data.dat', status = 'unknown')
   open( unit = 20, file = 'data/pion_correlator.dat', status = 'unknown')
   open( unit = 30, file = 'data/topological_charge.dat', status = 'unknown')
   open( unit = 40, file = 'data/polyakov_correlator.dat', status = 'unknown')
-ENDIFPARALLEL
+  ENDIFPARALLEL
 
- do i_b = 1, n_beta
-    call initialization(u,plq_action,top_char,slb_top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
-    IFPARALLEL
-    print*, beta(i_b), avr(plq_action)/product(L), std_Err(plq_action)/product(L), avr(top_char),std_err(top_char)
-    do j = 0, L(1)/2-1
-       write(40,*) j,avr(poly_corr(j,:)%re),std_err(poly_corr(j,:)%re)
-    end do
-    write(40,"(2/)")
-    flush(40)
-    ENDIFPARALLEL
- end do
- 
+  do i_b = 1, n_beta
+     if(read_config) then
+        call read_configs(U,beta(i_b))
+     else   
+        call initialization(u,plq_action,top_char,slb_top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
+     end if
+     
+     IFPARALLEL
+     print*, beta(i_b), avr(plq_action)/product(L), std_Err(plq_action)/product(L), avr(top_char),std_err(top_char)
+     do j = 0, L(1)/2-1
+        write(40,*) j,avr(poly_corr(j,:)%re),std_err(poly_corr(j,:)%re)
+     end do
+     write(40,"(2/)")
+     flush(40)
+     ENDIFPARALLEL
+  end do
+  
 contains
-
+  
   function avr(x)
     real(dp), intent(in) :: x(:)
     real(dp) :: avr

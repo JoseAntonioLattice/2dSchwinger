@@ -10,13 +10,13 @@ module configurations
 contains
 
   subroutine save_configuration(U,beta)
-     complex(dp), intent(in) :: U(DIM)
+    complex(dp), intent(in) :: U(DIM)
     real(dp), intent(in) :: beta
     integer(i4) :: un, ix,ex, iy, ey, a(2)
     complex(dp), allocatable :: U_global(:,:,:)CDIM2
     character(:), allocatable :: path,file_name
     character(100), dimension(6) :: directory_array
-
+    
 #ifndef PARALLEL
     allocate(U_global(2,L(1),L(2)))
     U_global = U
@@ -35,7 +35,7 @@ contains
 #endif
        directory_array = [character(100):: "data","configurations", "m0="//real2str(m0,nint(log10(abs(m0)))+1,4),&
             "Lx="//trim(int2str(Lx)),"Lt="//trim(int2str(Ly)),"beta="//trim(real2str(beta,1,4))]
-    
+       
        call check_directory(directory_array,path)
        call numbered_files(path,"U",".bin",file_name)
        open(newunit = un, file = file_name, access = "sequential", form = "unformatted")
@@ -66,7 +66,7 @@ contains
     
     if( this_image()==1 ) then
 #endif
-       open(newunit = un, file = filename, access = "sequential", form = "unformatted")  
+       open(newunit = un, file = filename, access = "sequential", form = "unformatted", action = "read")  
        read(un) U_global
        close(un)
        

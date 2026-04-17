@@ -24,7 +24,8 @@ module parameters
   integer(i4) :: MD_steps
   real(dp) :: trajectory_length
   logical :: save_config
-  namelist /parametersfile/ L,save_config,N_thermalization,N_measurements,N_skip, &
+  logical :: read_config
+  namelist /parametersfile/ L, save_config, read_config, N_thermalization,N_measurements,N_skip, &
        beta_i, beta_f, n_beta,m0,tol, max_iter, MD_steps, trajectory_length
 contains
 
@@ -46,6 +47,7 @@ contains
     endif
     call co_broadcast(L,source_image=1)
     call co_broadcast(save_config,source_image=1)
+    call co_broadcast(read_config,source_image=1)
     call co_broadcast(N_thermalization,source_image=1)
     call co_broadcast(N_measurements,source_image=1)
     call co_broadcast(N_skip,source_image=1)
