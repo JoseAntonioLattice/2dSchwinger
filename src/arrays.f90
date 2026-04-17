@@ -3,8 +3,9 @@
 #else
 #define CODIM 
 #endif
-module arrays
 
+module arrays
+  
   use iso_fortran_env, only : dp => real64, i4 => int32
 
   implicit none
@@ -16,7 +17,7 @@ module arrays
   real(dp), allocatable, dimension(:,:) CODIM :: slb_top_char
   real(dp), allocatable, dimension(:,:) CODIM :: pion_correlator
   complex(dp), allocatable, dimension(:,:) :: poly_corr
-  
+  complex(dp), allocatable, dimension(:,:,:) CODIM :: Up, psi, chi, phi, cg_p, cg_Ddagp
   real(dp) :: avr_action,err_action
   integer(i4) :: bins
   

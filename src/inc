@@ -1,0 +1,31 @@
+#if defined(PARALLEL)
+#define DIM 2,0:Lx+1,0:Ly+1
+#define DIM3 :,:,:
+#define CODIM ,codimension[*]
+#define CODIM2 ,codimension[:]
+#define CDIM [*]
+#define CDIM2 [:]
+#define ALLOC ,allocatable
+#define DIM_CODIM_ALLOC dimension(:,:,:),allocatable,codimension[:] 
+#define SYNC(A) sync all; \
+  A(:,  Lx+1,1:Ly  ) = A(:,1    ,1:Ly)[right]; \
+  A(:,0     ,1:Ly  ) = A(:,   Lx,1:Ly)[left]; \
+  A(:,1:Lx,Ly+1) = A(:,1:Lx,1)[arriba]; \
+  A(:,1:Lx  ,0     ) = A(:, 1:Lx,  Ly)[down]; \
+  sync all; \
+  A(:,Lx+1, Ly+1) = A(:, 1 , 1 )[right_up]; \
+  A(:,Lx+1, 0   ) = A(:, 1 , Ly)[right_down]; \
+  A(:,0   , Ly+1) = A(:, Lx, 1 )[left_up]; \
+  A(:,0   , 0   ) = A(:, Lx, Ly)[left_down]
+#else
+#define DIM 2,Lx,Ly
+#define DIM3 2,Lx,Ly
+#define CODIM 
+#define CDIM
+#define CODIM2
+#define CDIM2
+#define ALLOC
+#define DIM_CODIM_ALLOC dimension(:,:,:)
+#define SYNC(A)
+#endif
+

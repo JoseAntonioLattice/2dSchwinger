@@ -4,7 +4,7 @@ TARGET = 2dU1.exe
 SRC = src
 BIN = bin
 
-SOURCE = indices.f90 statistics.f90 pbc.f90 arrays.f90 parameters.f90 dynamics.f90 main.f90
+SOURCE = indices.f90 statistics.f90 pbc.f90 configurations.f90 arrays.f90 parameters.f90 starts.f90 u1.f90 Gradient_flow.f90 dirac.f90 CG.f90 hmc.f90 observables.f90 dynamics.f90 main.f90
 
 OBJECT = $(patsubst %, $(BIN)/%, $(SOURCE:.f90=.o ) )
 
@@ -14,7 +14,7 @@ FFLAGS = -ffree-line-length-512 -O3 -J$(BIN) -I$(BIN) -cpp #-DPARALLEL
 
 
 $(BIN)/$(TARGET): $(OBJECT)
-	$(FC) -o $@ $^ -L ~/Fortran/lib -lnum2str -lfiles
+	$(FC) -o $@ $^ -L ~/Fortran/lib -lnum2str -lfiles -lconstants
 
 $(BIN)/%.o: $(SRC)/%.f90
 	$(FC) -I ~/Fortran/include $(FFLAGS) -c $< -o $@ -L ~/Fortran/lib -lnum2str  -lfiles

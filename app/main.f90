@@ -1,6 +1,8 @@
 program main
-  use format
-  use iso_fortran_env, only : dp => real64
+  !use format
+  use number2string
+  use pbc
+  use iso_fortran_env, only : dp => real64, i4 => int32
   implicit none
 
   integer, parameter :: Lx = 32
@@ -16,18 +18,22 @@ program main
 
   integer :: i
 
-  real(dp) :: action(nconfig)
+  real(dp) :: a_action(nconfig)
   
   call set_pbc([Lx,Lt])
 
-  do i = 1, nconfig
-     filename = "data/configurations/m0="//real2str(m0,4)// &
+  !do i = 1, nconfig
+  i = 1
+     filename = "data/configurations/m0="//real2str(m0,3,4)// &
           "/Lx="//int2str(Lx)//"/Lt="//int2str(Lt)//&
-          "/beta="//real2str(beta)// &
+          "/beta="//real2str(beta,1,4)// &
           "/U_"//int2str(i)//".bin"
      call read_configuration(U,filename)
-     a_action(i) = action(U)
-  end do
+  !   a_action(i) = action(U)
+  !end do
+  !print*, sum(a_action(:))/(nconfig*Lx*Lt)
+
+     call wilson_flow(U,beta)
   
 contains
 
@@ -44,7 +50,7 @@ contains
   end subroutine read_configuration
 
   function plaquette(u,x)
-    use pbc, only : ip, im
+    !use pbc, only : ip, im
     complex(dp) :: plaquette
     complex(dp), dimension(:,:,:), intent(in) :: u
     integer(i4), intent(in) :: x(2)
@@ -59,6 +65,31 @@ contains
     
   end function plaquette
 
+  function staples(u,x,mu)
+    complex(dp) :: staples
+    complex(dp), dimension(:,:,:), intent(in) :: u
+    integer(i4), intent(in) :: x(2), mu
+    integer(i4), dimension(2) :: x2, x3, x4, x5, x6
+
+    integer(i4) :: nu
+    
+    if ( mu == 1 ) then
+       nu = 2
+    elseif( mu == 2)then
+       nu = 1
+    end if
+
+    x2 = ip(x,nu)
+    x3 = ip(x,mu)
+    x4 = im(x,nu)
+    x5 = x4
+    x6 = im(x3,nu)
+    
+    staples = u(nu,x(1),x(2)) * u(mu,x2(1), x2(2)) * conjg( u(nu,x3(1), x3(2)) ) + &
+         conjg( u(nu,x4(1),x4(2)) ) * u(mu,x5(1), x5(2)) * u(nu,x6(1), x6(2))
+    
+  end function staples
+  
   function action(u)
     real(dp) :: action
     complex(dp), dimension(:,:,:), intent(in) :: u
@@ -97,7 +128,7 @@ contains
   end function correlation_polyakov
 
   subroutine topological_charge_density(u,top)
-    complex(dp), dimension(DIM), intent(in) :: u
+    complex(dp), dimension(:,:,:), intent(in) :: u
     real(dp), intent(out) :: top(size(u(1,:,1)),size(u(1,1,:))) 
     integer(i4) :: i, j, Lx, Ly
     complex(dp) :: plq
@@ -120,33 +151,35 @@ contains
     real(dp) :: slab_top_char
     integer(i4) :: i, j
     complex(dp) :: plq
+    real(dp), parameter :: pi = acos(-1.0_dp)
 
     slab_top_char = (sum(top(1:ix,:))/(2*pi))**2!*sum(top(ix+1:,:))
     
   end function slab_top_char
 
+ 
+  subroutine wilson_flow(U,beta) !result(Up)
+    complex(dp), intent(inout) :: U(:,:,:)
+    complex(dp) :: Up(2,size(U(1,:,1)),size(U(1,1,:)))
+    real(dp), intent(in) :: beta
+    real(dp), parameter :: epsilon = 1.0E-2_dp
+    integer, parameter :: Nt = 100
+    integer :: x,y,t, Lx, Ly
 
-  
-!!$  subroutine wilson_flow(U,beta)
-!!$    use parameters, only : Lx, Ly
-!!$    complex(dp), intent(inout) :: U(DIM)
-!!$    real(dp), intent(in) :: beta
-!!$    real(dp), parameter :: epsilon = 1.0E-3_dp
-!!$    integer, parameter :: Nt = 100
-!!$    integer :: x,y,t
-!!$    
-!!$    do t = 1, Nt
-!!$       do x = 1, Lx
-!!$          do y = 1, Ly
-!!$             Up(1,x,y) = exp(-epsilon*beta*real(U(1,x,y)*conjg(staples(U,[x,y],1))))*U(1,x,y)
-!!$             Up(2,x,y) = exp(-epsilon*beta*real(U(2,x,y)*conjg(staples(U,[x,y],2))))*U(2,x,y)
-!!$          end do
-!!$       end do
-!!$       SYNC(Up)
-!!$       U = Up
-!!$    end do
+    Lx = size(U(1,:,1))
+    Ly = size(U(1,1,:))
+    print*, 0, action(U)
+    do t = 1, Nt
+       do x = 1, Lx
+          do y = 1, Ly
+             Up(1,x,y) = exp(-epsilon*beta*real(U(1,x,y)*conjg(staples(U,[x,y],1))))*U(1,x,y)
+             Up(2,x,y) = exp(-epsilon*beta*real(U(2,x,y)*conjg(staples(U,[x,y],2))))*U(2,x,y)
+          end do
+       end do
+       U = Up
+       print*, t*epsilon, action(U)
+    end do
 
   end subroutine wilson_flow
-
 
 end program main

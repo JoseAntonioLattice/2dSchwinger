@@ -7,13 +7,13 @@
 #endif
 
 program U1_2d
-
   !use statistics
   use pbc
   use parameters
   use arrays
   use dynamics
   use number2string
+  use starts
   implicit none
 
   integer :: i_b, j, k
@@ -22,7 +22,6 @@ program U1_2d
   call read_input
   call set_memory(u,L,beta,beta_i,beta_f,n_beta,plq_action,top_char,slb_top_char,pion_correlator,n_measurements)
   allocate(avr_top(Lx),err_top(Lx))
- ! call check_CG()
   call hot_start(u)
 
 IFPARALLEL
@@ -34,19 +33,14 @@ ENDIFPARALLEL
 
  do i_b = 1, n_beta
     call initialization(u,plq_action,top_char,slb_top_char,pion_correlator,beta(i_b),N_thermalization,N_measurements, N_skip)
-    
     IFPARALLEL
     print*, beta(i_b), avr(plq_action)/product(L), std_Err(plq_action)/product(L), avr(top_char),std_err(top_char)
-    ENDIFPARALLEL
     do j = 0, L(1)/2-1
        write(40,*) j,avr(poly_corr(j,:)%re),std_err(poly_corr(j,:)%re)
-       !write(30,*) j, avr(slb_top_char(j,:)), std_err(slb_top_char(j,:))
     end do
-    !write(20,*) Lx,avr(pion_correlator(1,:)),std_err(pion_correlator(1,:))
-    !write(20,"(2/)")
     write(40,"(2/)")
     flush(40)
-    
+    ENDIFPARALLEL
  end do
  
 contains
@@ -57,7 +51,6 @@ contains
 
     avr = sum(x)/size(x)
   end function avr
-
   
   function var(x)
     real(dp), intent(in) :: x(:)
@@ -66,7 +59,6 @@ contains
     avg = avr(x)
     var = sum((x-avg)**2)/(size(x)-1)
   end function var
-
   
   function std_err(x)
     real(dp), intent(in) :: x(:)
