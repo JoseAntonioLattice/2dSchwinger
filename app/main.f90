@@ -168,7 +168,7 @@ contains
 
     Lx = size(U(1,:,1))
     Ly = size(U(1,1,:))
-    print*, 0, action(U)
+    print*, 0.0_dp, action(U)
     do t = 1, Nt
        do x = 1, Lx
           do y = 1, Ly
