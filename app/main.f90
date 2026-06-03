@@ -7,7 +7,7 @@ program main
 
   integer, parameter :: Lx = 16
   integer, parameter :: Lt = 16
-  integer, parameter :: Nt = 100
+  integer, parameter :: Nt = 50
 
   real(dp), dimension(Lx,Lt) :: Q
 
@@ -44,7 +44,7 @@ program main
      !write(un,*) t*epsilon, action(U), top_char(Up)
      if( nint(abs(top_char(U))) == 1 ) then
         count = count + 1
-        call wilson_flow(U,beta,Nt)
+        call wilson_flow(U,beta,Nt,epsilon)
      end if
      !write(un,*) t*epsilon, action(U), top_char(U)
   end do
