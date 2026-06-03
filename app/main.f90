@@ -5,35 +5,57 @@ program main
   use iso_fortran_env, only : dp => real64, i4 => int32
   implicit none
 
-  integer, parameter :: Lx = 32
-  integer, parameter :: Lt = 8
+  integer, parameter :: Lx = 16
+  integer, parameter :: Lt = 16
+  integer, parameter :: Nt = 100
+
+  real(dp), dimension(Lx,Lt) :: Q
 
   integer, parameter :: nconfig = 1000
+  real(dp), parameter :: pi = acos(-1.0_dp)
 
-  real(dp) :: beta = 6.0_dp
+  real(dp) :: beta = 3.0_dp
   real(dp) :: m0 = 100.0_dp
+  real(dp) :: epsilon = 1.0E-2_dp
   
   complex(dp), dimension(2,Lx,Lt) :: U
   character(:), allocatable :: filename
 
-  integer :: i
+  integer :: i, un, count, ix, it, t
 
-  real(dp) :: a_action(nconfig)
+  real(dp) :: a_action(nconfig), slb(Lx,0:Nt)
+  real(dp), dimension(nconfig,Lx,Nt) :: slab
+
   
   call set_pbc([Lx,Lt])
 
-  !do i = 1, nconfig
-  i = 1
+  open(newunit = un, file = "energy.dat")
+  open(unit = 69, file = "q1.dat")
+  open(unit = 42, file = "slab.dat")
+  count = 0
+  slb = 0.0_dp
+  do i = 1, nconfig
      filename = "data/configurations/m0="//real2str(m0,3,4)// &
           "/Lx="//int2str(Lx)//"/Lt="//int2str(Lt)//&
           "/beta="//real2str(beta,1,4)// &
           "/U_"//int2str(i)//".bin"
      call read_configuration(U,filename)
-  !   a_action(i) = action(U)
-  !end do
-  !print*, sum(a_action(:))/(nconfig*Lx*Lt)
 
-     call wilson_flow(U,beta)
+     !write(un,*) t*epsilon, action(U), top_char(Up)
+     if( nint(abs(top_char(U))) == 1 ) then
+        count = count + 1
+        call wilson_flow(U,beta,Nt)
+     end if
+     !write(un,*) t*epsilon, action(U), top_char(U)
+  end do
+
+  do t = 0, Nt
+     do ix = 1, Lx
+        write(42,*) 1.0_dp*ix/(Lx), slb(ix,t)/count
+     end do
+     write(42,"(2/)")
+  end do
+  print*, count
   
 contains
 
@@ -145,6 +167,43 @@ contains
        
   end subroutine topological_charge_density
 
+  function top_char(U)
+    complex(dp), dimension(:,:,:), intent(in) :: u
+    integer(i4) :: i, j, Lx, Ly
+    complex(dp) :: plq
+    real(dp) :: top_char
+    
+    Lx = size(u(1,:,1))
+    Ly = size(u(1,1,:))
+    top_char = 0.0_dp
+    do i = 1, Lx
+       do j = 1, Ly
+          plq = plaquette(u,[i,j])
+          top_char = top_char + atan2(plq%im,plq%re)!/(2*pi)
+       end do
+    end do
+    top_char = top_char/(2*pi)
+  end function top_char
+
+  function top_char_arr(U)
+    complex(dp), dimension(:,:,:), intent(in) :: u
+    integer(i4) :: i, j, Lx, Ly
+    complex(dp) :: plq
+    real(dp) :: top_char_arr(size(U(1,:,1)),size(U(1,1,:)))
+    
+    Lx = size(u(1,:,1))
+    Ly = size(u(1,1,:))
+  
+    do i = 1, Lx
+       do j = 1, Ly
+          plq = plaquette(u,[i,j])
+          top_char_arr(i,j) =  plq%im!atan2(plq%im,plq%re)!/(2*pi)
+       end do
+    end do
+    !top_char = top_char!/(2*pi)
+  end function top_char_arr
+
+
   function slab_top_char(top,ix)
     real(dp), intent(in) :: top(:,:)
     integer(i4), intent(in) :: ix
@@ -158,27 +217,36 @@ contains
   end function slab_top_char
 
  
-  subroutine wilson_flow(U,beta) !result(Up)
+  subroutine wilson_flow(U,beta,Nt,epsilon) !result(Up)
     complex(dp), intent(inout) :: U(:,:,:)
     complex(dp) :: Up(2,size(U(1,:,1)),size(U(1,1,:)))
     real(dp), intent(in) :: beta
-    real(dp), parameter :: epsilon = 1.0E-2_dp
-    integer, parameter :: Nt = 100
+    real(dp), intent(in) :: epsilon
+    integer, intent(in) :: Nt 
     integer :: x,y,t, Lx, Ly
+    !real(dp) :: slb(size(u(1,:,1)))
 
     Lx = size(U(1,:,1))
     Ly = size(U(1,1,:))
-    print*, 0.0_dp, action(U)
+
+    Q = top_char_arr(U)
+    do ix = 1, Lx
+       slb(ix,0) = slb(ix,0) + slab_top_char(Q,ix)
+    end do
     do t = 1, Nt
        do x = 1, Lx
           do y = 1, Ly
-             Up(1,x,y) = exp(-epsilon*beta*real(U(1,x,y)*conjg(staples(U,[x,y],1))))*U(1,x,y)
-             Up(2,x,y) = exp(-epsilon*beta*real(U(2,x,y)*conjg(staples(U,[x,y],2))))*U(2,x,y)
+             Up(1,x,y) = exp( cmplx(0.0_dp, -epsilon*beta*aimag(U(1,x,y)*conjg(staples(U,[x,y],1))), dp) ) * U(1,x,y)
+             Up(2,x,y) = exp( cmplx(0.0_dp, -epsilon*beta*aimag(U(2,x,y)*conjg(staples(U,[x,y],2))), dp) ) * U(2,x,y)
           end do
        end do
        U = Up
-       print*, t*epsilon, action(U)
+       Q = top_char_arr(U)
+        do ix = 1, Lx
+           slb(ix,t) = slb(ix,t) + slab_top_char(Q,ix)
+        end do
     end do
+    write(un,"(2/)") 
 
   end subroutine wilson_flow
 
