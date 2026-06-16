@@ -1,12 +1,12 @@
 &parametersfile
-L = 32,8
-save_config = F
-read_config = T
+L = 16,16
+save_config = T
+read_config = F
 N_thermalization = 1000
-N_measurements = 1000
+N_measurements = 10000
 N_skip = 10
-beta_i = 6.0
-beta_f = 10.0
+beta_i = 3.0
+beta_f = 6.0
 n_beta = 1
 m0 = 100.0
 tol=1e-6
