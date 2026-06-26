@@ -12,7 +12,7 @@ program main
 
   real(dp), dimension(Lx,Lt) :: Q
 
-  integer, parameter :: nconfig = 1000
+  integer, parameter :: nconfig = 10000
   real(dp), parameter :: pi = acos(-1.0_dp)
 
   real(dp) :: beta = 3.0_dp
@@ -400,7 +400,7 @@ contains
     complex(dp), intent(in) :: U(:,:,:)
     integer, intent(in) :: x(2), mu
     real(dp) :: beta
-    Zeta = cmplx( 0.0_dp, -beta*aimag(U(mu,x(1),x(2))*conjg(staples(U,x,mu))), dp)
+    Zeta = cmplx( 0.0_dp, -aimag(U(mu,x(1),x(2))*conjg(staples(U,x,mu))), dp)
   end function Zeta
 
 end program main
